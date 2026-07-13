@@ -97,14 +97,14 @@
             pointer-events: none;
         }
 
-        /* 2. ÁREA DA FOTO RECALIBRADA (BAIXADA E ESTICADA NA ALTURA) */
+        /* 2. ÁREA DA FOTO AJUSTADA (DESCEU PARA 61%) */
         #area-foto {
             position: absolute;
-            top: 57%;    /* Baixou um pouco mais na área útil (era 55%) */
+            top: 61%;    /* Posicionada mais abaixo no card */
             left: 50%;
             transform: translate(-50%, -50%);
             width: 85%;  
-            height: 38%; /* Esticou a altura vertical (era 32%) */
+            height: 38%; 
             z-index: 2;  
             display: flex;
             align-items: center;
@@ -134,10 +134,10 @@
             padding: 10px;
         }
 
-        /* 3. TEXTO DO NOME NO TOPO ABSOLUTO */
+        /* 3. TEXTO DO NOME AJUSTADO (DESCEU PARA 75px DO BOTTOM) */
         #texto-nome {
             position: absolute;
-            bottom: 115px;
+            bottom: 75px; /* Nome posicionado mais abaixo */
             left: 50%;
             transform: translateX(-50%);
             width: 90%;
