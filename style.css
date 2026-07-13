@@ -11,11 +11,11 @@ body{
     color:white;
     overflow-x:hidden;
 
-    /* Fundo em tons de verde escuro de alta performance */
+    /* Fundo combinado com a identidade verde do evento */
     background:
         radial-gradient(circle at top, rgba(74, 222, 128, 0.15), transparent 35%),
         radial-gradient(circle at center, rgba(34, 197, 94, 0.1), transparent 55%),
-        linear-gradient(180deg, #022c22 0%, #064e3b 45%, #022c22 100%);
+        linear-gradient(180deg, #022c22 0%, #052e16 45%, #022c22 100%);
 }
 
 .container{
@@ -30,7 +30,7 @@ header{
 }
 
 header h1{
-    font-size:clamp(2rem, 8vw, 3.2rem);
+    font-size:clamp(1.8rem, 7vw, 2.8rem);
     font-weight:900;
     line-height:1.15;
     color:#f8fafc;
@@ -83,39 +83,39 @@ header p{
     aspect-ratio:9/16;
     overflow:hidden;
     border-radius:20px;
-    background:#022c22;
+    background:#052e16;
     border:1px solid rgba(74, 222, 128, 0.35);
     box-shadow:0 0 25px rgba(34, 197, 94, 0.25);
 }
 
 /* ==========================================================================
-   CAMADAS INTERNAS DO CARD (Z-INDEX CONFIGURADOS)
+   POSICIONAMENTO AJUSTADO BASEADO NA SUA IMAGEM
    ========================================================================== */
 
-/* 1. O fundo.png fica estritamente na base do card */
+/* 1. O fundo original ocupa todo o card */
 #moldura-bg{
     position:absolute;
     inset:0;
     background-image:url("fundo.png");
     background-size:cover;
     background-position:center;
-    z-index:1; 
-    pointer-events: none;
+    z-index:2; /* Se os textos estiverem no PNG, ele sobrepõe as bordas da foto */
+    pointer-events: none; 
 }
 
-/* 2. A foto selecionada fica na camada superior, passando por CIMA do fundo */
+/* 2. ÁREA DA FOTO: Ajustada exatamente para a região central indicada pelas setas */
 #area-foto{
     position:absolute;
-    top: 42%; 
+    top: 55%; /* Centralizada no meio do card, abaixo do "ATLETA CONFIRMADO" */
     left:50%;
     transform: translate(-50%, -50%);
     
-    width:70%; 
+    /* Largura total e altura controlada para não vazar no topo nem nos logos de baixo */
+    width:100%; 
     height:45%; 
     
     overflow:hidden;
-    border-radius:18px;
-    z-index:2; /* Fica acima do fundo (z-index 1) */
+    z-index:1; /* Fica por baixo da moldura/textos do fundo se for transparente, ou visível no meio */
 
     display:flex;
     align-items:center;
@@ -158,40 +158,39 @@ header p{
     background:rgba(2, 44, 34, 0.85);
 }
 
-/* 3. O nome do atleta fica no topo absoluto sobre todas as imagens */
+/* 3. NOME: Posicionado exatamente como no modelo (Acima dos logos inferiores) */
 #texto-nome{
     position:absolute;
-    bottom: 110px; 
+    bottom: 115px; /* Altura perfeita para bater com a posição da imagem de exemplo */
     left:50%;
     transform:translateX(-50%);
 
     width:90%;
     text-align:center;
 
-    font-size:clamp(22px, 5.5vw, 34px);
+    font-size:clamp(24px, 6vw, 36px);
     font-weight:900;
     line-height:1.1;
     letter-spacing:.5px;
     text-transform: uppercase;
 
     color:#ffffff;
-    z-index:10; /* Protegido no topo */
+    z-index:10; /* Sempre no topo de tudo */
 
-    /* Borda preta em alta definição para leitura em qualquer cenário */
+    /* Contorno preto idêntico ao da imagem para máxima leitura */
     text-shadow:
-        3px 3px 0px #000,
-        -3px 3px 0px #000,
-        3px -3px 0px #000,
-        -3px -3px 0px #000,
-        0px 3px 0px #000,
-        0px -3px 0px #000,
-        3px 0px 0px #000,
-        -3px 0px 0px #000,
-        0 0 15px rgba(0,0,0,0.8);
+        2px 2px 0px #000,
+        -2px 2px 0px #000,
+        2px -2px 0px #000,
+        -2px -2px 0px #000,
+        0px 2px 0px #000,
+        0px -2px 0px #000,
+        2px 0px 0px #000,
+        -2px 0px 0px #000;
 }
 
 /* ==========================================================================
-   PAINEL DE CONTROLES E BOTÕES
+   PAINEL DE CONTROLES
    ========================================================================== */
 
 .controls{
