@@ -137,6 +137,7 @@
             pointer-events: none;
         }
 
+        /* FONTE REVISADA NA TELA */
         #texto-nome {
             position: absolute;
             bottom: 75px; 
@@ -144,7 +145,9 @@
             transform: translateX(-50%);
             width: 90%;
             text-align: center;
-            font-size: clamp(24px, 6vw, 36px);
+            font-family: 'Impact', 'Arial Black', sans-serif;
+            letter-spacing: 1px;
+            font-size: clamp(26px, 7vw, 42px);
             font-weight: 900;
             text-transform: uppercase;
             color: #ffffff;
@@ -195,7 +198,6 @@
             opacity: 0.9;
         }
 
-        /* MODAL INTERATIVO PARA SALVAR NO CELULAR */
         .modal-mobile {
             display: none;
             position: fixed;
@@ -278,7 +280,6 @@
     </main>
 </div>
 
-<!-- Modal para fallback de celulares antigos ou navegadores como o do Instagram -->
 <div id="modalMobile" class="modal-mobile" style="display: none;">
     <img id="imgResultadoMobile" src="" alt="Card Pronto">
     <p>👇 Pressione e segure o dedo na imagem para Salvar na Galeria!</p>
@@ -338,7 +339,6 @@
         return Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY);
     }
 
-    // --- INTERAÇÕES DE ARRASTAR E ZOOM ---
     areaFoto.addEventListener('touchstart', (e) => {
         if (!inputFoto.files[0]) return;
         if (e.touches.length === 1) {
@@ -401,7 +401,6 @@
         modalMobile.style.display = 'none';
     }
 
-    // --- PROCESSO ADAPTADO PARA MOBILE ---
     btnDownload.onclick = () => {
         if (!inputFoto.files[0] || !fotoUser.src) return alert("Selecione sua foto primeiro!");
 
@@ -453,24 +452,26 @@
             ctx.drawImage(molduraImg, 0, 0, 1080, 1920);
             ctx.globalCompositeOperation = 'source-over';
 
+            // CONFIGURAÇÕES DA NOVA FONTE PROFISSIONAL (ESTILO COMPETIÇÃO/ESPORTIVO)
             ctx.fillStyle = "#ffffff";
-            ctx.font = "900 66px Arial";
+            ctx.font = "900 78px 'Impact', 'Arial Black', sans-serif";
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
             
             const xTexto = 1080 / 2;
             const yTexto = 1920 - 165; 
 
+            // MELHORIA DE NITIDEZ: Desenhar contorno ANTES do preenchimento para não distorcer as letras
             ctx.strokeStyle = "#000000";
-            ctx.lineWidth = 12;
+            ctx.lineWidth = 14;
+            ctx.lineJoin = "round";
+            ctx.miterLimit = 2;
             ctx.strokeText(textoNome.textContent, xTexto, yTexto);
             ctx.fillText(textoNome.textContent, xTexto, yTexto);
 
-            // TENTA PRIMEIRO A WEB SHARE API (COMPARTILHAMENTO NATIVO DO CELULAR)
             canvas.toBlob(async (blob) => {
                 const arquivo = new File([blob], 'Desafio_Araras_Story.png', { type: 'image/png' });
                 
-                // Se o celular aceitar compartilhamento de arquivos diretamente
                 if (navigator.canShare && navigator.canShare({ files: [arquivo] })) {
                     try {
                         await navigator.share({
@@ -480,13 +481,10 @@
                         });
                         btnDownload.innerText = "2. Salvar / Compartilhar";
                         btnDownload.disabled = false;
-                        return; // Sucesso total, encerra aqui
-                    } catch (err) {
-                        // Se o usuário cancelou o compartilhamento, ignora e segue pro plano B
-                    }
+                        return;
+                    } catch (err) {}
                 }
 
-                // PLANO B (FALLBACK): Abre a imagem pronta em tela cheia para salvar segurando o dedo
                 const dataUrl = canvas.toDataURL('image/png', 1.0);
                 imgResultadoMobile.src = dataUrl;
                 modalMobile.style.display = 'flex';
