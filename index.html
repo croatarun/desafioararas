@@ -84,7 +84,6 @@
             border: 1px solid rgba(74, 222, 128, 0.35);
         }
 
-        /* 1. MOLDURA FLUTUANDO NA BASE DO CARD */
         #moldura-bg {
             position: absolute;
             inset: 0;
@@ -95,7 +94,6 @@
             pointer-events: none;
         }
 
-        /* 2. ÁREA DA FOTO */
         #area-foto {
             position: absolute;
             top: 63%;      
@@ -139,7 +137,6 @@
             pointer-events: none;
         }
 
-        /* 3. TEXTO DO NOME - AJUSTADO MAIS PARA CIMA */
         #texto-nome {
             position: absolute;
             bottom: 75px; 
@@ -159,7 +156,6 @@
                 -2px -2px 0px #000;
         }
 
-        /* CONTROLES */
         .controls {
             display: flex;
             flex-direction: column;
@@ -197,6 +193,46 @@
             color: #a7f3d0;
             margin: 4px 0;
             opacity: 0.9;
+        }
+
+        /* MODAL INTERATIVO PARA SALVAR NO CELULAR */
+        .modal-mobile {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 9999;
+            padding: 20px;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-mobile img {
+            max-width: 100%;
+            max-height: 70vh;
+            border-radius: 12px;
+            border: 2px solid #16a34a;
+            box-shadow: 0 0 20px rgba(22, 163, 74, 0.5);
+        }
+
+        .modal-mobile p {
+            margin-top: 15px;
+            text-align: center;
+            font-weight: bold;
+            color: #bbf7d0;
+            font-size: 1.1rem;
+        }
+
+        .btn-fechar {
+            margin-top: 20px;
+            padding: 10px 25px;
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
         }
     </style>
 </head>
@@ -237,9 +273,16 @@
                 👋 Use 1 dedo para mover | ✌️ Use 2 dedos para dar zoom
             </p>
 
-            <button class="btn btn-download" id="btnDownload">2. Baixar Story</button>
+            <button class="btn btn-download" id="btnDownload">2. Salvar / Compartilhar</button>
         </div>
     </main>
+</div>
+
+<!-- Modal para fallback de celulares antigos ou navegadores como o do Instagram -->
+<div id="modalMobile" class="modal-mobile" style="display: none;">
+    <img id="imgResultadoMobile" src="" alt="Card Pronto">
+    <p>👇 Pressione e segure o dedo na imagem para Salvar na Galeria!</p>
+    <button class="btn-fechar" onclick="fecharModal()">Voltar e Ajustar</button>
 </div>
 
 <script>
@@ -251,6 +294,8 @@
     const textoNome = document.getElementById('texto-nome');
     const msgAjuda = document.getElementById('msg-ajuda');
     const btnDownload = document.getElementById('btnDownload');
+    const modalMobile = document.getElementById('modalMobile');
+    const imgResultadoMobile = document.getElementById('imgResultadoMobile');
 
     let scale = 1;
     let translateX = 0;
@@ -352,7 +397,11 @@
         ctx.closePath();
     }
 
-    // --- MOTOR DO CANVAS ADAPTADO COM A LÓGICA DO SEGUNDO CÓDIGO ---
+    function fecharModal() {
+        modalMobile.style.display = 'none';
+    }
+
+    // --- PROCESSO ADAPTADO PARA MOBILE ---
     btnDownload.onclick = () => {
         if (!inputFoto.files[0] || !fotoUser.src) return alert("Selecione sua foto primeiro!");
 
@@ -367,10 +416,9 @@
         const molduraImg = new Image();
         molduraImg.src = 'fundo.png';
         
-        molduraImg.onload = () => {
+        molduraImg.onload = async () => {
             ctx.clearRect(0, 0, 1080, 1920);
 
-            // PASSO 1: Desenhar a FOTO primeiro com máscara de recorte
             const wBox = 1080 * 0.84; 
             const hBox = 1920 * 0.41; 
             const xBox = (1080 - wBox) / 2;
@@ -378,7 +426,7 @@
 
             ctx.save();
             drawRoundedRect(ctx, xBox, yBox, wBox, hBox, 42);
-            ctx.clip(); // Trava a foto dentro da área cortada
+            ctx.clip();
 
             const imgRatio = fotoUser.naturalWidth / fotoUser.naturalHeight;
             const boxRatio = wBox / hBox;
@@ -401,12 +449,10 @@
             ctx.drawImage(fotoUser, -renderW / 2, -renderH / 2, renderW, renderH);
             ctx.restore();
 
-            // PASSO 2: Desenhar a MOLDURA por cima usando a técnica do modelo 2
             ctx.globalCompositeOperation = 'destination-over'; 
             ctx.drawImage(molduraImg, 0, 0, 1080, 1920);
-            ctx.globalCompositeOperation = 'source-over'; // Reseta para o padrão antes do texto
+            ctx.globalCompositeOperation = 'source-over';
 
-            // PASSO 3: Texto do nome por cima de tudo (AJUSTADO MAIS PARA CIMA DE 125 para 165)
             ctx.fillStyle = "#ffffff";
             ctx.font = "900 66px Arial";
             ctx.textAlign = "center";
@@ -420,21 +466,39 @@
             ctx.strokeText(textoNome.textContent, xTexto, yTexto);
             ctx.fillText(textoNome.textContent, xTexto, yTexto);
 
-            // Executa o download final
-            const link = document.createElement('a');
-            link.download = 'Desafio_Araras_Story.png';
-            link.href = canvas.toDataURL('image/png', 1.0);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+            // TENTA PRIMEIRO A WEB SHARE API (COMPARTILHAMENTO NATIVO DO CELULAR)
+            canvas.toBlob(async (blob) => {
+                const arquivo = new File([blob], 'Desafio_Araras_Story.png', { type: 'image/png' });
+                
+                // Se o celular aceitar compartilhamento de arquivos diretamente
+                if (navigator.canShare && navigator.canShare({ files: [arquivo] })) {
+                    try {
+                        await navigator.share({
+                            files: [arquivo],
+                            title: 'Meu Card Oficial',
+                            text: 'Confira meu Card Oficial do Desafio Araras!'
+                        });
+                        btnDownload.innerText = "2. Salvar / Compartilhar";
+                        btnDownload.disabled = false;
+                        return; // Sucesso total, encerra aqui
+                    } catch (err) {
+                        // Se o usuário cancelou o compartilhamento, ignora e segue pro plano B
+                    }
+                }
 
-            btnDownload.innerText = "2. Baixar Story";
-            btnDownload.disabled = false;
+                // PLANO B (FALLBACK): Abre a imagem pronta em tela cheia para salvar segurando o dedo
+                const dataUrl = canvas.toDataURL('image/png', 1.0);
+                imgResultadoMobile.src = dataUrl;
+                modalMobile.style.display = 'flex';
+
+                btnDownload.innerText = "2. Salvar / Compartilhar";
+                btnDownload.disabled = false;
+            }, 'image/png', 1.0);
         };
 
         molduraImg.onerror = () => {
             alert("Erro ao carregar 'fundo.png'.");
-            btnDownload.innerText = "2. Baixar Story";
+            btnDownload.innerText = "2. Salvar / Compartilhar";
             btnDownload.disabled = false;
         };
     };
