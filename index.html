@@ -139,10 +139,10 @@
             pointer-events: none;
         }
 
-        /* 3. TEXTO DO NOME */
+        /* 3. TEXTO DO NOME - AJUSTADO MAIS PARA CIMA */
         #texto-nome {
             position: absolute;
-            bottom: 55px; 
+            bottom: 75px; 
             left: 50%;
             transform: translateX(-50%);
             width: 90%;
@@ -406,14 +406,14 @@
             ctx.drawImage(molduraImg, 0, 0, 1080, 1920);
             ctx.globalCompositeOperation = 'source-over'; // Reseta para o padrão antes do texto
 
-            // PASSO 3: Texto do nome por cima de tudo
+            // PASSO 3: Texto do nome por cima de tudo (AJUSTADO MAIS PARA CIMA DE 125 para 165)
             ctx.fillStyle = "#ffffff";
             ctx.font = "900 66px Arial";
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
             
             const xTexto = 1080 / 2;
-            const yTexto = 1920 - 125; 
+            const yTexto = 1920 - 165; 
 
             ctx.strokeStyle = "#000000";
             ctx.lineWidth = 12;
