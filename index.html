@@ -93,23 +93,24 @@
             background-image: url("fundo.png");
             background-size: cover;
             background-position: center;
-            z-index: 1; /* Camada de baixo */
+            z-index: 1;
             pointer-events: none;
         }
 
-        /* 2. ÁREA DA FOTO FICA POR CIMA DO FUNDO */
+        /* 2. ÁREA DA FOTO MENOR E COMPACTA NO CENTRO DA TELA */
         #area-foto {
             position: absolute;
-            top: 55%; /* Centralizado no espaço do meio */
+            top: 55%; /* Mantém centralizado verticalmente no vão livre */
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 100%;
-            height: 45%;
-            z-index: 2; /* Fica por CIMA do fundo (z-index: 1) */
+            width: 85%;  /* Reduzido para dar margem nas laterais */
+            height: 32%; /* Reduzido de 45% para 32% para ocupar bem menos espaço vertical */
+            z-index: 2;  /* Fica por cima do fundo */
             display: flex;
             align-items: center;
             justify-content: center;
-            cursor: grab;
+            overflow: hidden; /* Corta o excesso da imagem */
+            border-radius: 12px;
         }
 
         #foto-user {
@@ -117,6 +118,7 @@
             height: 100%;
             object-fit: cover;
             pointer-events: none;
+            transition: transform 0.1s ease-out;
         }
 
         #foto-placeholder {
@@ -132,10 +134,10 @@
             padding: 10px;
         }
 
-        /* 3. TEXTO DO NOME FICA NO TOPO ABSOLUTO */
+        /* 3. TEXTO DO NOME NO TOPO ABSOLUTO */
         #texto-nome {
             position: absolute;
-            bottom: 115px; /* Abaixo na imagem, acima dos patrocinadores */
+            bottom: 115px;
             left: 50%;
             transform: translateX(-50%);
             width: 90%;
@@ -144,7 +146,7 @@
             font-weight: 900;
             text-transform: uppercase;
             color: #ffffff;
-            z-index: 10; /* Sempre no topo */
+            z-index: 10;
             text-shadow:
                 2px 2px 0px #000,
                 -2px 2px 0px #000,
@@ -210,12 +212,10 @@
     </header>
 
     <main class="card-box">
-        <!-- Input de Texto -->
         <div class="input-group">
             <input type="text" id="nome-corredor" placeholder="Digite seu nome completo" maxlength="25">
         </div>
 
-        <!-- Área do Card que será exportada -->
         <div id="card-evento">
             <div id="moldura-bg"></div>
             
@@ -230,7 +230,6 @@
             <div id="texto-nome">SEU NOME AQUI</div>
         </div>
 
-        <!-- Painel de Controles -->
         <div class="controls">
             <label class="file-label">
                 1. Escolher Foto
@@ -239,7 +238,7 @@
 
             <div class="control-item">
                 <label for="slider-zoom">Zoom</label>
-                <input type="range" id="slider-zoom" min="100" max="300" value="100" disabled>
+                <input type="range" id="slider-zoom" min="50" max="200" value="100" disabled>
             </div>
 
             <div class="action-buttons">
@@ -251,7 +250,6 @@
 </div>
 
 <script>
-    // SCRIPT DE CONTROLE INTERNO ORIGINAL CORRIGIDO
     const inputFoto = document.getElementById('input-foto');
     const fotoUser = document.getElementById('foto-user');
     const fotoPlaceholder = document.getElementById('foto-placeholder');
@@ -263,12 +261,10 @@
 
     let currentScale = 1;
 
-    // Atualizar nome em tempo real
     nomeCorredor.addEventListener('input', (e) => {
         textoNome.textContent = e.target.value.toUpperCase().trim() || "SEU NOME AQUI";
     });
 
-    // Carregar Imagem do Usuário
     inputFoto.addEventListener('change', function(e) {
         const file = e.target.files[0];
         if (file) {
@@ -278,7 +274,6 @@
                 fotoUser.style.display = 'block';
                 fotoPlaceholder.style.display = 'none';
                 
-                // Ativar controles
                 sliderZoom.disabled = false;
                 btnReset.disabled = false;
             }
@@ -286,20 +281,17 @@
         }
     });
 
-    // Controle de Zoom
     sliderZoom.addEventListener('input', (e) => {
         currentScale = e.target.value / 100;
         fotoUser.style.transform = `scale(${currentScale})`;
     });
 
-    // Botão Reset
     btnReset.addEventListener('click', () => {
         currentScale = 1;
         sliderZoom.value = 100;
         fotoUser.style.transform = `scale(1)`;
     });
 
-    // Exportar com html2canvas preservando as ordens das camadas
     btnDownload.addEventListener('click', () => {
         if(!inputFoto.files[0]) {
             alert("Por favor, selecione uma foto primeiro!");
@@ -310,7 +302,7 @@
         html2canvas(card, {
             useCORS: true,
             allowTaint: true,
-            scale: 2 // Melhora a qualidade ao salvar
+            scale: 2 
         }).then(canvas => {
             const link = document.createElement('a');
             link.download = 'meu-card-oficial.png';
