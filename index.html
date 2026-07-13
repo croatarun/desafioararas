@@ -97,20 +97,20 @@
             pointer-events: none;
         }
 
-        /* 2. ÁREA DA FOTO */
+        /* 2. ÁREA DA FOTO COM TAMANHO E POSIÇÃO FIXOS (Protegendo o topo) */
         #area-foto {
             position: absolute;
-            top: 62%;    
+            top: 61.5%;    /* Centralizado perfeitamente abaixo do Atleta Confirmado */
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 85%;  
-            height: 44%; 
+            width: 84%;    /* Largura fixa baseada no seu layout */
+            height: 43%;   /* Altura fixa controlada para não invadir textos superiores */
             z-index: 2;  
             display: flex;
             align-items: center;
             justify-content: center;
             overflow: hidden; 
-            border-radius: 12px;
+            border-radius: 14px;
             cursor: grab;
             user-select: none;
             touch-action: none;
@@ -120,16 +120,14 @@
             cursor: grabbing;
         }
 
-        /* CORREÇÃO AQUI: Mudança nas regras de tamanho para evitar cortes e permitir redução real */
+        /* Preenchimento inteligente e responsivo às transformações manuais */
         #foto-user {
-            max-width: 100%;
-            max-height: 100%;
-            width: auto;
-            height: auto;
-            object-fit: contain;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
             pointer-events: none;
-            transform: scale(1) translateY(0px);
-            transform-origin: center center; /* Garante que o zoom reduza em direção ao centro */
+            transform: translate(0px, 0px) scale(1);
+            transform-origin: center center;
             transition: transform 0.02s ease-out;
         }
 
@@ -297,12 +295,11 @@
                 <label for="slider-zoom">Zoom da Foto</label>
                 <div class="zoom-container">
                     <button type="button" class="btn-zoom" id="btn-zoom-out" disabled>-</button>
-                    <!-- Expandido o mínimo do slider para 10% permitindo reduções maiores se necessário -->
-                    <input type="range" id="slider-zoom" min="10" max="250" value="100" step="2" disabled>
+                    <input type="range" id="slider-zoom" min="50" max="300" value="100" step="2" disabled>
                     <button type="button" class="btn-zoom" id="btn-zoom-in" disabled>+</button>
                 </div>
             </div>
-            <p class="instrucao-arrastar" id="msg-ajuda" style="display:none;">💡 Dica: Arraste a foto para cima ou para baixo com o dedo</p>
+            <p class="instrucao-arrastar" id="msg-ajuda" style="display:none;">💡 Dica: Arraste a foto livremente com o dedo para os lados ou cima/baixo</p>
 
             <div class="action-buttons">
                 <button id="btn-reset" type="button" disabled>Centralizar</button>
@@ -327,10 +324,13 @@
     const btnReset = document.getElementById('btn-reset');
     const btnDownload = document.getElementById('btn-download');
 
-    // Variáveis de estado
+    // Estados de transformação
     let currentScale = 1;
+    let currentTranslateX = 0;
     let currentTranslateY = 0;
+    
     let isDragging = false;
+    let startX = 0;
     let startY = 0;
 
     nomeCorredor.addEventListener('input', (e) => {
@@ -347,8 +347,9 @@
                 fotoPlaceholder.style.display = 'none';
                 msgAjuda.style.display = 'block';
                 
-                // Configurações padrão iniciais ao carregar nova foto
+                // Reinicia posições ao carregar nova foto
                 currentScale = 1;
+                currentTranslateX = 0;
                 currentTranslateY = 0;
                 sliderZoom.value = 100;
                 aplicarTransformacoes();
@@ -363,20 +364,24 @@
     });
 
     function aplicarTransformacoes() {
-        // Usa a sintaxe combinada mantendo o ponto de origem centralizado
-        fotoUser.style.transform = `translateY(${currentTranslateY}px) scale(${currentScale})`;
+        // Executa translação X e Y combinada perfeitamente com a escala do zoom
+        fotoUser.style.transform = `translate(${currentTranslateX}px, ${currentTranslateY}px) scale(${currentScale})`;
     }
 
-    // ARRASTO MANUAL AJUSTADO COM SUPORTE A ESCALA COMPENSADA
-    function iniciarArrasto(y) {
+    // REGULAGEM MANUAL 2D COMPLETA (DEDO OU MOUSE)
+    function iniciarArrasto(x, y) {
         if (!inputFoto.files[0]) return;
         isDragging = true;
-        // Compensação matemática: divide pela escala para o movimento do dedo bater com a imagem reduzida/ampliada
+        
+        // Compensação baseada na escala atual para evitar saltos bruscos
+        startX = x - (currentTranslateX * currentScale);
         startY = y - (currentTranslateY * currentScale);
     }
 
-    function moverArrasto(y) {
+    function moverArrasto(x, y) {
         if (!isDragging) return;
+        
+        currentTranslateX = (x - startX) / currentScale;
         currentTranslateY = (y - startY) / currentScale;
         aplicarTransformacoes();
     }
@@ -385,22 +390,22 @@
         isDragging = false;
     }
 
-    // Eventos Mouse
-    areaFoto.addEventListener('mousedown', (e) => iniciarArrasto(e.clientY));
-    window.addEventListener('mousemove', (e) => moverArrasto(e.clientY));
+    // Eventos Mouse (Desktop)
+    areaFoto.addEventListener('mousedown', (e) => iniciarArrasto(e.clientX, e.clientY));
+    window.addEventListener('mousemove', (e) => moverArrasto(e.clientX, e.clientY));
     window.addEventListener('mouseup', finalizarArrasto);
 
-    // Eventos Touch
+    // Eventos Touch (Mobile)
     areaFoto.addEventListener('touchstart', (e) => {
-        iniciarArrasto(e.touches[0].clientY);
+        iniciarArrasto(e.touches[0].clientX, e.touches[0].clientY);
     });
     window.addEventListener('touchmove', (e) => {
-        moverArrasto(e.touches[0].clientY);
+        moverArrasto(e.touches[0].clientX, e.touches[0].clientY);
     });
     window.addEventListener('touchend', finalizarArrasto);
 
 
-    // Controles de Slider e Botões de Zoom
+    // Controles adicionais de Zoom via Slider
     sliderZoom.addEventListener('input', (e) => {
         currentScale = e.target.value / 100;
         aplicarTransformacoes();
@@ -426,6 +431,7 @@
 
     btnReset.addEventListener('click', () => {
         currentScale = 1;
+        currentTranslateX = 0;
         currentTranslateY = 0;
         sliderZoom.value = 100;
         aplicarTransformacoes();
