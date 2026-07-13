@@ -97,19 +97,19 @@
             pointer-events: none;
         }
 
-        /* 2. ÁREA DA FOTO MENOR E COMPACTA NO CENTRO DA TELA */
+        /* 2. ÁREA DA FOTO RECALIBRADA (BAIXADA E ESTICADA NA ALTURA) */
         #area-foto {
             position: absolute;
-            top: 55%; /* Mantém centralizado verticalmente no vão livre */
+            top: 57%;    /* Baixou um pouco mais na área útil (era 55%) */
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 85%;  /* Reduzido para dar margem nas laterais */
-            height: 32%; /* Reduzido de 45% para 32% para ocupar bem menos espaço vertical */
-            z-index: 2;  /* Fica por cima do fundo */
+            width: 85%;  
+            height: 38%; /* Esticou a altura vertical (era 32%) */
+            z-index: 2;  
             display: flex;
             align-items: center;
             justify-content: center;
-            overflow: hidden; /* Corta o excesso da imagem */
+            overflow: hidden; 
             border-radius: 12px;
         }
 
