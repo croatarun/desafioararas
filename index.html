@@ -354,7 +354,7 @@
         ctx.closePath();
     }
 
-    // --- PROCESSO DE DOWNLOAD ADAPTADO COM OS DADOS REAIS DE ZOOM ---
+    // --- NOVO MOTOR DE DOWNLOAD CANVAS COM REPRODUÇÃO MATRICIAL CORRETA ---
     btnDownload.onclick = () => {
         if (!inputFoto.files[0]) return alert("Selecione sua foto primeiro!");
 
@@ -374,11 +374,11 @@
         atletaImg.src = fotoUser.src;
 
         molduraImg.onload = () => {
-            // 1. Limpa e preenche o fundo básico
+            // 1. Preenche o fundo básico com a cor padrão
             ctx.fillStyle = '#022c22';
             ctx.fillRect(0, 0, 1080, 1920);
 
-            // 2. Caixa de recorte proporcional (84% larg, 41% alt)
+            // 2. Caixa de recorte proporcional (84% larg, 41% alt) com base nos parâmetros originais
             const wBox = 1080 * 0.84; 
             const hBox = 1920 * 0.41; 
             const xBox = (1080 - wBox) / 2;
@@ -388,33 +388,33 @@
             drawRoundedRect(ctx, xBox, yBox, wBox, hBox, 42);
             ctx.clip();
 
-            // Mapeia o tamanho real do contêiner da foto na tela para converter os pixels corretamente
+            // Mapeia o tamanho em tela para capturar as proporções do object-fit: cover nativo
             const exibicaoW = areaFoto.clientWidth;
             const exibicaoH = areaFoto.clientHeight;
-            
-            // Fator de escala intrínseco (com base no object-fit: cover padrão da imagem na tela)
             const ratioW = exibicaoW / atletaImg.naturalWidth;
             const ratioH = exibicaoH / atletaImg.naturalHeight;
-            const baseScale = Math.max(ratioW, ratioH);
+            const coverScale = Math.max(ratioW, ratioH);
 
-            // Transpõe a escala visual e o zoom aplicados para o tamanho do Canvas HD
+            // Largura e altura da imagem se estivesse em object-fit: cover estático em relação à caixa
+            const baseW = atletaImg.naturalWidth * coverScale;
+            const baseH = atletaImg.naturalHeight * coverScale;
+
+            // Fator multiplicador de conversão da tela para a resolução interna HD do Canvas (1080px)
             const fatorConversaoHD = 1080 / areaFoto.parentElement.clientWidth;
-            
-            const renderW = atletaImg.naturalWidth * baseScale * scale * fatorConversaoHD;
-            const renderH = atletaImg.naturalHeight * baseScale * scale * fatorConversaoHD;
 
-            // Calcula o centro e adiciona os desvios exatos feitos pelo usuário (X e Y)
-            const renderX = xBox + (wBox - renderW) / 2 + (translateX * fatorConversaoHD);
-            const renderY = yBox + (hBox - renderH) / 2 + (translateY * fatorConversaoHD);
+            // Transpõe a lógica exata de renderização do CSS (Center Origin + Translate + Scale) para o Canvas
+            ctx.translate(xBox + wBox / 2, yBox + hBox / 2); // Vai ao centro da caixa
+            ctx.translate(translateX * fatorConversaoHD, translateY * fatorConversaoHD); // Aplica o movimento do usuário
+            ctx.scale(scale, scale); // Aplica o zoom do usuário
 
-            // Renderiza a imagem do atleta modificada e com o zoom correto
-            ctx.drawImage(atletaImg, renderX, renderY, renderW, renderH);
+            // Desenha a imagem centralizada no novo ponto de origem matricial corrigido
+            ctx.drawImage(atletaImg, -baseW / 2 * fatorConversaoHD, -baseH / 2 * fatorConversaoHD, baseW * fatorConversaoHD, baseH * fatorConversaoHD);
             ctx.restore();
 
-            // 3. Desenha a moldura por cima
+            // 3. Desenha a sua moldura oficial por cima de tudo
             ctx.drawImage(molduraImg, 0, 0, 1080, 1920);
 
-            // 4. Renderiza o texto
+            // 4. Renderiza o texto nativamente com o contorno preto perfeito
             ctx.fillStyle = "#ffffff";
             ctx.font = "900 66px Arial";
             ctx.textAlign = "center";
