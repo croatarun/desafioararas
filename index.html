@@ -97,14 +97,14 @@
             pointer-events: none;
         }
 
-        /* 2. ÁREA DA FOTO EXPANDIDA MAIS PARA BAIXO */
+        /* 2. ÁREA DA FOTO */
         #area-foto {
             position: absolute;
-            top: 62%;    /* Levemente reajustado para acomodar o ganho de altura */
+            top: 62%;    
             left: 50%;
             transform: translate(-50%, -50%);
             width: 85%;  
-            height: 44%; /* Aumentado de 38% para 44% para esticar bem mais para baixo */
+            height: 38%; 
             z-index: 2;  
             display: flex;
             align-items: center;
@@ -118,6 +118,8 @@
             height: 100%;
             object-fit: cover;
             pointer-events: none;
+            /* Suporta a combinação de Zoom (scale) e Posição (translateY) */
+            transform: scale(1) translateY(0px);
             transition: transform 0.1s ease-out;
         }
 
@@ -185,13 +187,14 @@
             font-size: 0.9rem;
         }
 
-        .zoom-container {
+        /* CONTAINER DOS BOTÕES DE AJUSTE (ZOOM E SETAS DIRECONAIS) */
+        .btn-container-row {
             display: flex;
             align-items: center;
             gap: 10px;
         }
 
-        .btn-zoom {
+        .btn-adjust {
             background: #334155;
             color: white;
             border: none;
@@ -208,9 +211,14 @@
             user-select: none;
         }
 
-        .btn-zoom:disabled {
+        .btn-adjust:disabled {
             opacity: 0.4;
             cursor: not-allowed;
+        }
+
+        .btn-dir {
+            flex: 1; /* Faz as setas de subir/descer dividirem o espaço igualmente */
+            font-size: 1rem;
         }
 
         input[type="range"] {
@@ -272,12 +280,22 @@
                 <input type="file" id="input-foto" accept="image/*">
             </label>
 
+            <!-- Ajuste de Zoom -->
             <div class="control-item">
                 <label for="slider-zoom">Zoom da Foto</label>
-                <div class="zoom-container">
-                    <button type="button" class="btn-zoom" id="btn-zoom-out" disabled>-</button>
+                <div class="btn-container-row">
+                    <button type="button" class="btn-adjust" id="btn-zoom-out" disabled>-</button>
                     <input type="range" id="slider-zoom" min="50" max="250" value="100" step="2" disabled>
-                    <button type="button" class="btn-zoom" id="btn-zoom-in" disabled>+</button>
+                    <button type="button" class="btn-adjust" id="btn-zoom-in" disabled>+</button>
+                </div>
+            </div>
+
+            <!-- NOVO: Ajuste de Altura com Setas Direcionais -->
+            <div class="control-item">
+                <label>Ajustar Posição (Cima / Baixo)</label>
+                <div class="btn-container-row">
+                    <button type="button" class="btn-adjust btn-dir" id="btn-move-up" disabled>▲ Subir</button>
+                    <button type="button" class="btn-adjust btn-dir" id="btn-move-down" disabled>▼ Descer</button>
                 </div>
             </div>
 
@@ -295,13 +313,19 @@
     const fotoPlaceholder = document.getElementById('foto-placeholder');
     const nomeCorredor = document.getElementById('nome-corredor');
     const textoNome = document.getElementById('texto-nome');
+    
+    // Elementos de Controle
     const sliderZoom = document.getElementById('slider-zoom');
     const btnZoomIn = document.getElementById('btn-zoom-in');
     const btnZoomOut = document.getElementById('btn-zoom-out');
+    const btnMoveUp = document.getElementById('btn-move-up');
+    const btnMoveDown = document.getElementById('btn-move-down');
     const btnReset = document.getElementById('btn-reset');
     const btnDownload = document.getElementById('btn-download');
 
+    // Variáveis de Estado da Imagem
     let currentScale = 1;
+    let currentTranslateY = 0; // Controla a altura em pixels
 
     nomeCorredor.addEventListener('input', (e) => {
         textoNome.textContent = e.target.value.toUpperCase().trim() || "SEU NOME AQUI";
@@ -316,43 +340,70 @@
                 fotoUser.style.display = 'block';
                 fotoPlaceholder.style.display = 'none';
                 
+                // Habilitar todos os botões de ajuste
                 sliderZoom.disabled = false;
                 btnZoomIn.disabled = false;
                 btnZoomOut.disabled = false;
+                btnMoveUp.disabled = false;
+                btnMoveDown.disabled = false;
                 btnReset.disabled = false;
             }
             reader.readAsDataURL(file);
         }
     });
 
-    function atualizarZoom(valor) {
-        sliderZoom.value = valor;
-        currentScale = valor / 100;
-        fotoUser.style.transform = `scale(${currentScale})`;
+    // Aplica o Zoom e a Altura juntos de forma correta
+    function aplicarTransformacoes() {
+        fotoUser.style.transform = `scale(${currentScale}) translateY(${currentTranslateY}px)`;
     }
 
+    // Controle do Slider de Zoom
     sliderZoom.addEventListener('input', (e) => {
-        atualizarZoom(e.target.value);
+        currentScale = e.target.value / 100;
+        aplicarTransformacoes();
     });
 
+    // Zoom Out (-)
     btnZoomOut.addEventListener('click', () => {
         let novoValor = parseInt(sliderZoom.value) - 10;
         if (novoValor >= parseInt(sliderZoom.min)) {
-            atualizarZoom(novoValor);
+            sliderZoom.value = novoValor;
+            currentScale = novoValor / 100;
+            aplicarTransformacoes();
         }
     });
 
+    // Zoom In (+)
     btnZoomIn.addEventListener('click', () => {
         let novoValor = parseInt(sliderZoom.value) + 10;
         if (novoValor <= parseInt(sliderZoom.max)) {
-            atualizarZoom(novoValor);
+            sliderZoom.value = novoValor;
+            currentScale = novoValor / 100;
+            aplicarTransformacoes();
         }
     });
 
-    btnReset.addEventListener('click', () => {
-        atualizarZoom(100);
+    // Mover para Cima (▲) - reduz o Y
+    btnMoveUp.addEventListener('click', () => {
+        currentTranslateY -= 15; // Move 15px para cima por clique
+        aplicarTransformacoes();
     });
 
+    // Mover para Baixo (▼) - aumenta o Y
+    btnMoveDown.addEventListener('click', () => {
+        currentTranslateY += 15; // Move 15px para baixo por clique
+        aplicarTransformacoes();
+    });
+
+    // Resetar para as configurações padrão
+    btnReset.addEventListener('click', () => {
+        currentScale = 1;
+        currentTranslateY = 0;
+        sliderZoom.value = 100;
+        aplicarTransformacoes();
+    });
+
+    // Exportação do Card
     btnDownload.addEventListener('click', () => {
         if(!inputFoto.files[0]) {
             alert("Por favor, selecione uma foto primeiro!");
