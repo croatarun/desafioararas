@@ -252,7 +252,7 @@
     const msgAjuda = document.getElementById('msg-ajuda');
     const btnDownload = document.getElementById('btnDownload');
 
-    // Variáveis de controle de zoom/posição que funcionam perfeitamente na tela
+    // Variáveis de controle de zoom/posição na tela
     let scale = 1;
     let translateX = 0;
     let translateY = 0;
@@ -294,7 +294,7 @@
         return Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY);
     }
 
-    // --- INTERAÇÕES DA FOTO NA TELA ---
+    // --- INTERAÇÕES DE ARRASTAR E ZOOM ---
     areaFoto.addEventListener('touchstart', (e) => {
         if (!inputFoto.files[0]) return;
         if (e.touches.length === 1) {
@@ -323,6 +323,7 @@
     });
 
     window.addEventListener('touchend', () => { isDragging = false; initialPinchDistance = 0; });
+    
     areaFoto.addEventListener('mousedown', (e) => {
         if (!inputFoto.files[0]) return;
         isDragging = true;
@@ -338,7 +339,7 @@
     });
     window.addEventListener('mouseup', () => { isDragging = false; });
 
-    // --- SUA FUNÇÃO DE ARREDONDAMENTO NATIVA DO CANVAS ---
+    // --- FUNÇÃO DE ARREDONDAMENTO DO CANVAS NATIVA ---
     function drawRoundedRect(ctx, x, y, width, height, radius) {
         ctx.beginPath();
         ctx.moveTo(x + radius, y);
@@ -353,20 +354,19 @@
         ctx.closePath();
     }
 
-    // --- EXPORTADOR CANVAS NATIVO (IGUAL AO QUE VOCÊ CONFIA) ---
+    // --- PROCESSO DE DOWNLOAD ADAPTADO COM OS DADOS REAIS DE ZOOM ---
     btnDownload.onclick = () => {
         if (!inputFoto.files[0]) return alert("Selecione sua foto primeiro!");
 
         btnDownload.innerText = "PROCESSANDO...";
         btnDownload.disabled = true;
 
-        // Criamos o canvas em background em alta definição estável (1080x1920)
+        // Configura o canvas em alta resolução (1080x1920)
         const canvas = document.createElement('canvas');
         canvas.width = 1080;
         canvas.height = 1920;
         const ctx = canvas.getContext('2d');
 
-        // Carrega as imagens de forma programática paralela para evitar problemas de CORS
         const molduraImg = new Image();
         molduraImg.src = 'fundo.png';
         
@@ -374,58 +374,61 @@
         atletaImg.src = fotoUser.src;
 
         molduraImg.onload = () => {
-            // 1. Limpa e desenha o fundo básico
+            // 1. Limpa e preenche o fundo básico
             ctx.fillStyle = '#022c22';
             ctx.fillRect(0, 0, 1080, 1920);
 
-            // 2. Mapeia a caixa da foto baseada nas proporções reais da tela (width: 84%, height: 41%, top: 63%)
-            const wBox = 1080 * 0.84; // 907.2px
-            const hBox = 1920 * 0.41; // 787.2px
+            // 2. Caixa de recorte proporcional (84% larg, 41% alt)
+            const wBox = 1080 * 0.84; 
+            const hBox = 1920 * 0.41; 
             const xBox = (1080 - wBox) / 2;
             const yBox = (1920 * 0.63) - (hBox / 2);
 
             ctx.save();
-            // Aplica sua função nativa de recorte arredondado
             drawRoundedRect(ctx, xBox, yBox, wBox, hBox, 42);
             ctx.clip();
 
-            // Calcula proporção do object-fit: cover da imagem do usuário
-            let renderW = wBox * scale;
-            let renderH = (atletaImg.naturalHeight / atletaImg.naturalWidth) * renderW;
+            // Mapeia o tamanho real do contêiner da foto na tela para converter os pixels corretamente
+            const exibicaoW = areaFoto.clientWidth;
+            const exibicaoH = areaFoto.clientHeight;
             
-            if(renderH < hBox * scale) {
-                renderH = hBox * scale;
-                renderW = (atletaImg.naturalWidth / atletaImg.naturalHeight) * renderH;
-            }
+            // Fator de escala intrínseco (com base no object-fit: cover padrão da imagem na tela)
+            const ratioW = exibicaoW / atletaImg.naturalWidth;
+            const ratioH = exibicaoH / atletaImg.naturalHeight;
+            const baseScale = Math.max(ratioW, ratioH);
 
-            // Fator multiplicador de tela física para a proporção HD do Canvas
-            const fatorConversao = 1080 / areaFoto.parentElement.clientWidth;
+            // Transpõe a escala visual e o zoom aplicados para o tamanho do Canvas HD
+            const fatorConversaoHD = 1080 / areaFoto.parentElement.clientWidth;
+            
+            const renderW = atletaImg.naturalWidth * baseScale * scale * fatorConversaoHD;
+            const renderH = atletaImg.naturalHeight * baseScale * scale * fatorConversaoHD;
 
-            const renderX = xBox + (wBox - renderW) / 2 + (translateX * fatorConversao);
-            const renderY = yBox + (hBox - renderH) / 2 + (translateY * fatorConversao);
+            // Calcula o centro e adiciona os desvios exatos feitos pelo usuário (X e Y)
+            const renderX = xBox + (wBox - renderW) / 2 + (translateX * fatorConversaoHD);
+            const renderY = yBox + (hBox - renderH) / 2 + (translateY * fatorConversaoHD);
 
-            // Desenha a foto do usuário modificada
+            // Renderiza a imagem do atleta modificada e com o zoom correto
             ctx.drawImage(atletaImg, renderX, renderY, renderW, renderH);
             ctx.restore();
 
-            // 3. Desenha a moldura oficial por cima
+            // 3. Desenha a moldura por cima
             ctx.drawImage(molduraImg, 0, 0, 1080, 1920);
 
-            // 4. Renderiza o texto nativamente
+            // 4. Renderiza o texto
             ctx.fillStyle = "#ffffff";
             ctx.font = "900 66px Arial";
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
             
             const xTexto = 1080 / 2;
-            const yTexto = 1920 - 125; // Alinhamento proporcional perfeito na base
+            const yTexto = 1920 - 125; 
 
             ctx.strokeStyle = "#000000";
             ctx.lineWidth = 12;
             ctx.strokeText(textoNome.textContent, xTexto, yTexto);
             ctx.fillText(textoNome.textContent, xTexto, yTexto);
 
-            // --- EXECUTA O SEU SEGURO SISTEMA DE DOWNLOAD VIA DATAURL ---
+            // 5. Executa o download nativo via DataURL
             const link = document.createElement('a');
             link.download = 'Desafio_Araras_Story.png';
             link.href = canvas.toDataURL('image/png', 1.0);
@@ -438,7 +441,7 @@
         };
 
         molduraImg.onerror = () => {
-            alert("Erro ao carregar a moldura 'fundo.png'. Certifique-se de que o arquivo está na mesma pasta.");
+            alert("Erro ao carregar 'fundo.png'. Certifique-se de que o arquivo está no mesmo diretório.");
             btnDownload.innerText = "2. Baixar Story";
             btnDownload.disabled = false;
         };
