@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Desafio Araras MTB</title>
+    <title>Gerador de Card Oficial - Ciclismo</title>
     <!-- Biblioteca para exportar a div como imagem -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     
@@ -76,11 +76,6 @@
             outline: none;
         }
 
-        .wrapper-card {
-            position: relative;
-            width: 100%;
-        }
-
         #card-evento {
             position: relative;
             width: 100%;
@@ -89,18 +84,6 @@
             border-radius: 20px;
             background: #022c22;
             border: 1px solid rgba(74, 222, 128, 0.35);
-        }
-
-        /* Imagem gerada que ficará por cima para o usuário salvar com o dedo */
-        #imagem-resultado {
-            position: absolute;
-            inset: 0;
-            width: 100%;
-            height: 100%;
-            border-radius: 20px;
-            z-index: 20;
-            display: none;
-            object-fit: contain;
         }
 
         /* 1. MOLDURA FLUTUANDO NA BASE DO CARD */
@@ -161,7 +144,7 @@
             pointer-events: none;
         }
 
-        /* 3. TEXTO DO NOME */
+        /* 3. TEXTO DO NOME (Mantido mais para baixo) */
         #texto-nome {
             position: absolute;
             bottom: 55px; 
@@ -226,26 +209,6 @@
             margin: 4px 0;
             opacity: 0.9;
         }
-
-        /* Alerta de salvamento mobile */
-        #alerta-salvar {
-            display: none;
-            background: #e11d48;
-            color: white;
-            text-align: center;
-            padding: 10px;
-            border-radius: 10px;
-            font-size: 0.9rem;
-            font-weight: bold;
-            margin-top: 4px;
-            animation: pulse 1.5s infinite;
-        }
-
-        @keyframes pulse {
-            0% { opacity: 0.9; }
-            50% { opacity: 0.6; }
-            100% { opacity: 0.9; }
-        }
     </style>
 </head>
 <body>
@@ -258,26 +221,21 @@
 
     <main class="card-box">
         <div class="input-group">
-            <input type="text" id="nome-corredor" placeholder="NOME" maxlength="25">
+            <input type="text" id="nome-corredor" placeholder="Digite seu nome completo" maxlength="25">
         </div>
 
-        <div class="wrapper-card">
-            <!-- Imagem oculta que recebe o resultado final do print -->
-            <img id="imagem-resultado" alt="Card finalizado">
-
-            <div id="card-evento">
-                <div id="moldura-bg"></div>
-                
-                <div id="area-foto">
-                    <img id="foto-user" alt="Sua foto de corredor" style="display: none;">
-                    <div id="foto-placeholder">
-                        <span>📸</span>
-                        <p>Toque abaixo para escolher uma foto</p>
-                    </div>
+        <div id="card-evento">
+            <div id="moldura-bg"></div>
+            
+            <div id="area-foto">
+                <img id="foto-user" alt="Sua foto de corredor" style="display: none;">
+                <div id="foto-placeholder">
+                    <span>📸</span>
+                    <p>Toque abaixo para escolher uma foto</p>
                 </div>
-
-                <div id="texto-nome">SEU NOME AQUI</div>
             </div>
+
+            <div id="texto-nome">SEU NOME AQUI</div>
         </div>
 
         <div class="controls">
@@ -289,8 +247,6 @@
             <p class="instrucao-arrastar" id="msg-ajuda" style="display:none;">
                 👋 Use 1 dedo para mover | ✌️ Use 2 dedos (pinça) para dar zoom
             </p>
-
-            <div id="alerta-salvar">☝️ SEGURE O DEDO NA IMAGEM ACIMA PARA SALVAR NO CELULAR!</div>
 
             <div class="action-buttons">
                 <button id="btn-reset" type="button" disabled>Modificar Foto</button>
@@ -310,9 +266,6 @@
     const msgAjuda = document.getElementById('msg-ajuda');
     const btnReset = document.getElementById('btn-reset');
     const btnDownload = document.getElementById('btn-download');
-    
-    const imgResultado = document.getElementById('imagem-resultado');
-    const alertaSalvar = document.getElementById('alerta-salvar');
     const cardEvento = document.getElementById('card-evento');
 
     let currentScale = 1;
@@ -327,7 +280,6 @@
 
     nomeCorredor.addEventListener('input', (e) => {
         textoNome.textContent = e.target.value.toUpperCase().trim() || "SEU NOME AQUI";
-        resgatarModoEdicao();
     });
 
     inputFoto.addEventListener('change', function(e) {
@@ -337,27 +289,19 @@
             reader.onload = function(event) {
                 fotoUser.src = event.target.result;
                 fotoUser.style.display = 'block';
-                fotoPlaceholder.style.none;
+                fotoPlaceholder.style.display = 'none';
+                msgAjuda.style.display = 'block';
                 
                 currentScale = 1;
                 currentTranslateX = 0;
                 currentTranslateY = 0;
                 aplicarTransformacoes();
-                resgatarModoEdicao();
 
                 btnReset.disabled = false;
             }
             reader.readAsDataURL(file);
         }
     });
-
-    function resgatarModoEdicao() {
-        imgResultado.style.display = 'none';
-        cardEvento.style.opacity = '1';
-        alertaSalvar.style.display = 'none';
-        msgAjuda.style.display = 'block';
-        btnDownload.innerText = "SALVAR CARD";
-    }
 
     function aplicarTransformacoes() {
         fotoUser.style.transform = `translate(${currentTranslateX}px, ${currentTranslateY}px) scale(${currentScale})`;
@@ -367,10 +311,9 @@
         return Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY);
     }
 
-    // --- MOVIMENTOS MOBILE ---
+    // --- ENTRADAS DE TOQUE (MOBILE GESTURES) ---
     areaFoto.addEventListener('touchstart', (e) => {
         if (!inputFoto.files[0]) return;
-        resgatarModoEdicao();
         if (e.touches.length === 1) {
             isDragging = true;
             startX = e.touches[0].clientX - (currentTranslateX * currentScale);
@@ -401,10 +344,9 @@
         if (e.touches.length < 2) initialPinchDistance = 0;
     });
 
-    // --- MOUSE ---
+    // --- ENTRADAS DE MOUSE (DESKTOP) ---
     areaFoto.addEventListener('mousedown', (e) => {
         if (!inputFoto.files[0]) return;
-        resgatarModoEdicao();
         isDragging = true;
         startX = e.clientX - (currentTranslateX * currentScale);
         startY = e.clientY - (currentTranslateY * currentScale);
@@ -425,50 +367,51 @@
         currentTranslateX = 0;
         currentTranslateY = 0;
         aplicarTransformacoes();
-        resgatarModoEdicao();
     });
 
-    // SISTEMA INFALÍVEL DE SALVAMENTO PARA NAVEGADORES DE INSTAGRAM/WHATSAPP
+    // --- MÉTODO DE DOWNLOAD DIRETO ATUALIZADO VIA BLOB (COMPATÍVEL COM CELULAR) ---
     btnDownload.addEventListener('click', () => {
         if(!inputFoto.files[0]) {
             alert("Por favor, selecione uma foto primeiro!");
             return;
         }
 
-        btnDownload.innerText = "GERANDO...";
-        
-        // Pequena pausa para garantir suavidade visual
-        setTimeout(() => {
-            html2canvas(cardEvento, {
-                useCORS: true,
-                allowTaint: true,
-                scale: 2
-            }).then(canvas => {
-                const imgData = canvas.toDataURL('image/png');
-                
-                // 1. Alimenta a tag de imagem com o print finalizado
-                imgResultado.src = imgData;
-                imgResultado.style.display = 'block';
-                
-                // 2. Esconde o card editável por trás para liberar o toque nativo do celular
-                cardEvento.style.opacity = '0';
-                
-                // 3. Exibe instrução piscante e limpa os textos de ajuda
-                alertaSalvar.style.display = 'block';
-                msgAjuda.style.display = 'none';
-                btnDownload.innerText = "CARD GERADO! ⬆️";
+        btnDownload.innerText = "BAIXANDO...";
+        btnDownload.disabled = true;
 
-                // 4. Tentativa secundária em background caso esteja em desktop (baixa direto)
-                const link = document.createElement('a');
-                link.download = 'meu-card-oficial.png';
-                link.href = imgData;
-                link.click();
-
-            }).catch(error => {
-                alert("Erro ao processar imagem. Tente ajustar novamente.");
-                resgatarModoEdicao();
-            });
-        }, 300);
+        // Executa a captura da área do card
+        html2canvas(cardEvento, {
+            useCORS: true,
+            allowTaint: true,
+            scale: 2, // Mantém a qualidade alta
+            logging: false
+        }).then(canvas => {
+            // Conversão correta e limpa para formato Blob (Arquivo real binário)
+            canvas.toBlob((blob) => {
+                if (blob) {
+                    const url = window.URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = 'meu-card-oficial.png';
+                    
+                    document.body.appendChild(link);
+                    link.click();
+                    
+                    // Limpeza de cache pós-download
+                    document.body.removeChild(link);
+                    window.URL.revokeObjectURL(url);
+                } else {
+                    alert("Erro ao processar arquivo. Tente novamente.");
+                }
+                
+                btnDownload.innerText = "SALVAR CARD";
+                btnDownload.disabled = false;
+            }, 'image/png');
+        }).catch(error => {
+            alert("Não foi possível gerar seu card. Verifique as permissões do seu navegador.");
+            btnDownload.innerText = "SALVAR CARD";
+            btnDownload.disabled = false;
+        });
     });
 </script>
 </body>
