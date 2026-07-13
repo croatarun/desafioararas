@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gerador de Card Oficial - Desafio Araras MTB</title>
+    <title>Gerador de Card Oficial - Ciclismo</title>
     <!-- Biblioteca para exportar a div como imagem -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     
@@ -97,14 +97,14 @@
             pointer-events: none;
         }
 
-        /* 2. ÁREA DA FOTO (Ajustada para ficar mais baixa e protegida do texto) */
+        /* 2. ÁREA DA FOTO */
         #area-foto {
             position: absolute;
-            top: 63%;      /* Empurrado levemente para baixo */
+            top: 63%;      
             left: 50%;
             transform: translate(-50%, -50%);
             width: 84%;    
-            height: 41%;   /* Altura ligeiramente menor para dar folga em cima */
+            height: 41%;   
             z-index: 2;  
             display: flex;
             align-items: center;
@@ -113,7 +113,7 @@
             border-radius: 14px;
             cursor: grab;
             user-select: none;
-            touch-action: none; /* Impede o scroll da página enquanto mexe na foto */
+            touch-action: none;
         }
 
         #area-foto:active {
@@ -144,10 +144,10 @@
             pointer-events: none;
         }
 
-        /* 3. TEXTO DO NOME */
+        /* 3. TEXTO DO NOME - AJUSTADO (Mais para baixo) */
         #texto-nome {
             position: absolute;
-            bottom: 75px; 
+            bottom: 55px; /* Reduzido de 75px para baixar o nome um pouco mais */
             left: 50%;
             transform: translateX(-50%);
             width: 90%;
@@ -164,7 +164,7 @@
                 -2px -2px 0px #000;
         }
 
-        /* CONTROLES LIMPOS */
+        /* CONTROLES */
         .controls {
             display: flex;
             flex-direction: column;
@@ -267,12 +267,10 @@
     const btnReset = document.getElementById('btn-reset');
     const btnDownload = document.getElementById('btn-download');
 
-    // Estados de transformação da foto
     let currentScale = 1;
     let currentTranslateX = 0;
     let currentTranslateY = 0;
     
-    // Variáveis auxiliares de controle de toque e mouse
     let isDragging = false;
     let startX = 0;
     let startY = 0;
@@ -293,7 +291,6 @@
                 fotoPlaceholder.style.display = 'none';
                 msgAjuda.style.display = 'block';
                 
-                // Reinicia posições
                 currentScale = 1;
                 currentTranslateX = 0;
                 currentTranslateY = 0;
@@ -309,22 +306,18 @@
         fotoUser.style.transform = `translate(${currentTranslateX}px, ${currentTranslateY}px) scale(${currentScale})`;
     }
 
-    // Calcula a distância entre dois dedos para o gesto de Zoom (Pinça)
     function getDistance(touch1, touch2) {
         return Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY);
     }
 
-    // --- EVENTOS DE TOQUE (CELULAR) ---
+    // --- TOQUE MOBILE ---
     areaFoto.addEventListener('touchstart', (e) => {
         if (!inputFoto.files[0]) return;
-
         if (e.touches.length === 1) {
-            // Um dedo: Mover imagem
             isDragging = true;
             startX = e.touches[0].clientX - (currentTranslateX * currentScale);
             startY = e.touches[0].clientY - (currentTranslateY * currentScale);
         } else if (e.touches.length === 2) {
-            // Dois dedos: Preparar Zoom por Gestos
             isDragging = false; 
             initialPinchDistance = getDistance(e.touches[0], e.touches[1]);
             initialScale = currentScale;
@@ -333,18 +326,13 @@
 
     window.addEventListener('touchmove', (e) => {
         if (!inputFoto.files[0]) return;
-
         if (e.touches.length === 1 && isDragging) {
-            // Executa o movimento
             currentTranslateX = (e.touches[0].clientX - startX) / currentScale;
             currentTranslateY = (e.touches[0].clientY - startY) / currentScale;
             aplicarTransformacoes();
         } else if (e.touches.length === 2 && initialPinchDistance > 0) {
-            // Executa o Zoom proporcional
             const currentDistance = getDistance(e.touches[0], e.touches[1]);
             const factor = currentDistance / initialPinchDistance;
-            
-            // Limita o zoom entre 0.4x e 4x para melhor usabilidade
             currentScale = Math.min(Math.max(initialScale * factor, 0.4), 4);
             aplicarTransformacoes();
         }
@@ -352,12 +340,10 @@
 
     window.addEventListener('touchend', (e) => {
         isDragging = false;
-        if (e.touches.length < 2) {
-            initialPinchDistance = 0;
-        }
+        if (e.touches.length < 2) initialPinchDistance = 0;
     });
 
-    // --- EVENTOS DE MOUSE (COMPUTADOR - SUPORTE ADICIONAL) ---
+    // --- MOUSE DESKTOP ---
     areaFoto.addEventListener('mousedown', (e) => {
         if (!inputFoto.files[0]) return;
         isDragging = true;
@@ -375,7 +361,6 @@
 
     window.addEventListener('mouseup', () => { isDragging = false; });
 
-    // Botão Resetar posição e escala
     btnReset.addEventListener('click', () => {
         currentScale = 1;
         currentTranslateX = 0;
@@ -383,23 +368,51 @@
         aplicarTransformacoes();
     });
 
-    // Exportação do Card finalizado
+    // LÓGICA DE EXPORTAÇÃO E BAIXAR CORRIGIDA PARA TODOS OS NAVEGADORES
     btnDownload.addEventListener('click', () => {
         if(!inputFoto.files[0]) {
             alert("Por favor, selecione uma foto primeiro!");
             return;
         }
 
+        btnDownload.innerText = "GERANDO...";
+        btnDownload.disabled = true;
+
         const card = document.getElementById('card-evento');
+        
+        // Garante que as imagens locais carreguem perfeitamente antes da captura
         html2canvas(card, {
             useCORS: true,
             allowTaint: true,
-            scale: 2 
+            scale: 2,
+            logging: false
         }).then(canvas => {
-            const link = document.createElement('a');
-            link.download = 'meu-card-oficial.png';
-            link.href = canvas.toDataURL('image/png');
-            link.click();
+            try {
+                const imgData = canvas.toDataURL('image/png');
+                
+                // Método automático de download
+                const link = document.createElement('a');
+                link.download = 'meu-card-oficial.png';
+                link.href = imgData;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } catch (err) {
+                // Alternativa infalível para navegadores de aplicativos mobile (Instagram, Facebook, etc)
+                const novaAba = window.open();
+                if(novaAba) {
+                    novaAba.document.write(`<h2 style="font-family:sans-serif; text-align:center; margin-top:20px;">Segure o dedo na imagem abaixo para Salvar</h2><img src="${canvas.toDataURL('image/png')}" style="width:100%; max-width:450px; display:block; margin:20px auto; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.3);"/>`);
+                } else {
+                    alert("Por favor, permita pop-ups ou tente em um navegador externo (Chrome/Safari).");
+                }
+            } finally {
+                btnDownload.innerText = "SALVAR CARD";
+                btnDownload.disabled = false;
+            }
+        }).catch(error => {
+            alert("Erro ao gerar imagem. Tente novamente.");
+            btnDownload.innerText = "SALVAR CARD";
+            btnDownload.disabled = false;
         });
     });
 </script>
