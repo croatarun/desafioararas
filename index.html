@@ -97,7 +97,7 @@
             pointer-events: none;
         }
 
-        /* 2. ÁREA DA FOTO (NOVA ESTRUTURA SEM CSS DYNÂMICO DE SOBREPOSIÇÃO) */
+        /* 2. ÁREA DA FOTO (NOVA ESTRUTURA SEM CSS DINÂMICO DE SOBREPOSIÇÃO) */
         #area-foto {
             position: absolute;
             top: 63%;      
@@ -207,6 +207,26 @@
             margin: 4px 0;
             opacity: 0.9;
         }
+
+        /* Alerta piscante para mobile */
+        #alerta-mobile {
+            display: none;
+            background: #e11d48;
+            color: white;
+            text-align: center;
+            padding: 10px;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            margin-top: 10px;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
     </style>
 </head>
 <body>
@@ -249,6 +269,9 @@
             <div class="action-buttons">
                 <button id="btn-download" type="button">Salvar Card</button>
             </div>
+            
+            <!-- Aviso piscante para mobile -->
+            <div id="alerta-mobile">☝️ AO ABRIR, SEGURE O DEDO NA IMAGEM PARA SALVAR</div>
         </div>
     </main>
 </div>
@@ -263,13 +286,12 @@
     const msgAjuda = document.getElementById('msg-ajuda');
     const btnDownload = document.getElementById('btn-download');
     const cardEvento = document.getElementById('card-evento');
+    const alertaMobile = document.getElementById('alerta-mobile');
 
-    // Estados de transformação da foto
     let currentScale = 1;
     let currentTranslateX = 0;
     let currentTranslateY = 0;
     
-    // Variáveis auxiliares de controle de toque e mouse
     let isDragging = false;
     let startX = 0;
     let startY = 0;
@@ -290,7 +312,6 @@
                 fotoPlaceholder.style.display = 'none';
                 msgAjuda.style.display = 'block';
                 
-                // Reinicia posições
                 currentScale = 1;
                 currentTranslateX = 0;
                 currentTranslateY = 0;
@@ -334,8 +355,6 @@
         } else if (e.touches.length === 2 && initialPinchDistance > 0) {
             const currentDistance = getDistance(e.touches[0], e.touches[1]);
             const factor = currentDistance / initialPinchDistance;
-            
-            // Limita o zoom entre 0.4x e 4x para melhor usabilidade
             currentScale = Math.min(Math.max(initialScale * factor, 0.4), 4);
             aplicarTransformacoes();
         }
@@ -364,58 +383,55 @@
 
     window.addEventListener('mouseup', () => { isDragging = false; });
 
-    // --- PROCESSO DE EXPORTAÇÃO HD COM NOVA ESTRUTURA LOGICA DE RENDERIZAÇÃO ---
+    // --- PROCESSO DE EXPORTAÇÃO HD DEFINITIVO PARA MOBILE ---
     btnDownload.addEventListener('click', () => {
         if(!inputFoto.files[0]) {
             alert("Por favor, selecione uma foto primeiro!");
             return;
         }
 
-        btnDownload.innerText = "AGUARDE, BAIXANDO EM HD...";
+        btnDownload.innerText = "GERANDO HD...";
         btnDownload.disabled = true;
+        alertaMobile.style.display = 'block'; // Mostra o aviso para mobile
 
-        // Configurações de alta fidelidade
-        html2canvas(cardEvento, {
-            scale: 3,                // Multiplica a densidade por 3x (Super Resolução Ultra HD)
-            useCORS: true,           // Evita quebra de imagens externas
-            allowTaint: false,
-            backgroundColor: null,   // Evita fundos brancos fantasmas
-            logging: false,
-            imageTimeout: 0,         // Não encerra o processamento antes de carregar os pixels modificados
-            onclone: (clonedDoc) => {
-                // Força o elemento clonado a manter as propriedades exatas de visualização
-                // O CANVAS AGORA RENDERIZA A FOTO COMO UM BLOCO INTEGRADO, NÃO SOBREPOSTO
-                const clonedArea = clonedDoc.getElementById('area-foto');
-                const clonedFoto = clonedDoc.getElementById('foto-user');
-                if (clonedFoto) {
-                    clonedFoto.style.transform = `translate(${currentTranslateX}px, ${currentTranslateY}px) scale(${currentScale})`;
+        // Pequena pausa para garantir que o layout foi capturado
+        setTimeout(() => {
+            html2canvas(cardEvento, {
+                scale: 3,                // Multiplica a densidade por 3x (Alta Definição)
+                useCORS: true,           // Evita quebra de imagens externas
+                allowTaint: false,
+                backgroundColor: null,   // Evita fundos brancos fantasmas
+                logging: false,
+                imageTimeout: 0,         // Não encerra o processamento antes de carregar os pixels modificados
+                onclone: (clonedDoc) => {
+                    const clonedFoto = clonedDoc.getElementById('foto-user');
+                    if (clonedFoto) {
+                        clonedFoto.style.transform = `translate(${currentTranslateX}px, ${currentTranslateY}px) scale(${currentScale})`;
+                    }
                 }
-            }
-        }).then(canvas => {
-            canvas.toBlob((blob) => {
-                if (blob) {
-                    const url = window.URL.createObjectURL(blob);
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.download = 'meu-card-oficial.png';
-                    
-                    document.body.appendChild(link);
-                    link.click();
-                    
-                    document.body.removeChild(link);
-                    window.URL.revokeObjectURL(url);
+            }).then(canvas => {
+                const imgData = canvas.toDataURL('image/png', 1.0);
+                
+                // --- NOVA LÓGICA DE SALVAMENTO PARA MOBILE (INQUÉBRÁVEL) ---
+                // Abre a imagem em HD em uma nova aba/guia instantaneamente
+                const novaAba = window.open();
+                if(novaAba) {
+                    novaAba.document.write(`<h2 style="font-family:sans-serif; text-align:center; margin-top:20px; color:#333;">Segure o dedo na imagem para Salvar</h2><img src="${imgData}" style="width:100%; max-width:450px; display:block; margin:20px auto; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.3);"/>`);
                 } else {
-                    alert("Erro ao processar imagem de alta qualidade.");
+                    alert("Por favor, permita pop-ups ou tente em um navegador externo (Chrome/Safari).");
                 }
                 
                 btnDownload.innerText = "SALVAR CARD";
                 btnDownload.disabled = false;
-            }, 'image/png', 1.0); // Qualidade máxima
-        }).catch(error => {
-            alert("Não foi possível gerar seu card. Verifique as permissões do seu navegador.");
-            btnDownload.innerText = "SALVAR CARD";
-            btnDownload.disabled = false;
-        });
+                alertaMobile.style.display = 'none'; // Esconde o aviso
+
+            }).catch(error => {
+                alert("Não foi possível gerar seu card. Tente ajustar novamente.");
+                btnDownload.innerText = "SALVAR CARD";
+                btnDownload.disabled = false;
+                alertaMobile.style.display = 'none';
+            });
+        }, 100);
     });
 </script>
 </body>
