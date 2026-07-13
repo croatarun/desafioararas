@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gerador de Card Oficial - Ciclismo</title>
+    <title>Desafio Araras MTB</title>
     <!-- Biblioteca para exportar a div como imagem -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     
@@ -76,6 +76,11 @@
             outline: none;
         }
 
+        .wrapper-card {
+            position: relative;
+            width: 100%;
+        }
+
         #card-evento {
             position: relative;
             width: 100%;
@@ -84,6 +89,18 @@
             border-radius: 20px;
             background: #022c22;
             border: 1px solid rgba(74, 222, 128, 0.35);
+        }
+
+        /* Imagem gerada que ficará por cima para o usuário salvar com o dedo */
+        #imagem-resultado {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 20px;
+            z-index: 20;
+            display: none;
+            object-fit: contain;
         }
 
         /* 1. MOLDURA FLUTUANDO NA BASE DO CARD */
@@ -144,10 +161,10 @@
             pointer-events: none;
         }
 
-        /* 3. TEXTO DO NOME - AJUSTADO (Mais para baixo) */
+        /* 3. TEXTO DO NOME */
         #texto-nome {
             position: absolute;
-            bottom: 55px; /* Reduzido de 75px para baixar o nome um pouco mais */
+            bottom: 55px; 
             left: 50%;
             transform: translateX(-50%);
             width: 90%;
@@ -209,6 +226,26 @@
             margin: 4px 0;
             opacity: 0.9;
         }
+
+        /* Alerta de salvamento mobile */
+        #alerta-salvar {
+            display: none;
+            background: #e11d48;
+            color: white;
+            text-align: center;
+            padding: 10px;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            margin-top: 4px;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.9; }
+            50% { opacity: 0.6; }
+            100% { opacity: 0.9; }
+        }
     </style>
 </head>
 <body>
@@ -224,18 +261,23 @@
             <input type="text" id="nome-corredor" placeholder="Digite seu nome completo" maxlength="25">
         </div>
 
-        <div id="card-evento">
-            <div id="moldura-bg"></div>
-            
-            <div id="area-foto">
-                <img id="foto-user" alt="Sua foto de corredor" style="display: none;">
-                <div id="foto-placeholder">
-                    <span>📸</span>
-                    <p>Toque abaixo para escolher uma foto</p>
-                </div>
-            </div>
+        <div class="wrapper-card">
+            <!-- Imagem oculta que recebe o resultado final do print -->
+            <img id="imagem-resultado" alt="Card finalizado">
 
-            <div id="texto-nome">SEU NOME AQUI</div>
+            <div id="card-evento">
+                <div id="moldura-bg"></div>
+                
+                <div id="area-foto">
+                    <img id="foto-user" alt="Sua foto de corredor" style="display: none;">
+                    <div id="foto-placeholder">
+                        <span>📸</span>
+                        <p>Toque abaixo para escolher uma foto</p>
+                    </div>
+                </div>
+
+                <div id="texto-nome">SEU NOME AQUI</div>
+            </div>
         </div>
 
         <div class="controls">
@@ -248,8 +290,10 @@
                 👋 Use 1 dedo para mover | ✌️ Use 2 dedos (pinça) para dar zoom
             </p>
 
+            <div id="alerta-salvar">☝️ SEGURE O DEDO NA IMAGEM ACIMA PARA SALVAR NO CELULAR!</div>
+
             <div class="action-buttons">
-                <button id="btn-reset" type="button" disabled>Resetar Foto</button>
+                <button id="btn-reset" type="button" disabled>Modificar Foto</button>
                 <button id="btn-download" type="button">Salvar Card</button>
             </div>
         </div>
@@ -266,6 +310,10 @@
     const msgAjuda = document.getElementById('msg-ajuda');
     const btnReset = document.getElementById('btn-reset');
     const btnDownload = document.getElementById('btn-download');
+    
+    const imgResultado = document.getElementById('imagem-resultado');
+    const alertaSalvar = document.getElementById('alerta-salvar');
+    const cardEvento = document.getElementById('card-evento');
 
     let currentScale = 1;
     let currentTranslateX = 0;
@@ -279,6 +327,7 @@
 
     nomeCorredor.addEventListener('input', (e) => {
         textoNome.textContent = e.target.value.toUpperCase().trim() || "SEU NOME AQUI";
+        resgatarModoEdicao();
     });
 
     inputFoto.addEventListener('change', function(e) {
@@ -288,19 +337,27 @@
             reader.onload = function(event) {
                 fotoUser.src = event.target.result;
                 fotoUser.style.display = 'block';
-                fotoPlaceholder.style.display = 'none';
-                msgAjuda.style.display = 'block';
+                fotoPlaceholder.style.none;
                 
                 currentScale = 1;
                 currentTranslateX = 0;
                 currentTranslateY = 0;
                 aplicarTransformacoes();
+                resgatarModoEdicao();
 
                 btnReset.disabled = false;
             }
             reader.readAsDataURL(file);
         }
     });
+
+    function resgatarModoEdicao() {
+        imgResultado.style.display = 'none';
+        cardEvento.style.opacity = '1';
+        alertaSalvar.style.display = 'none';
+        msgAjuda.style.display = 'block';
+        btnDownload.innerText = "SALVAR CARD";
+    }
 
     function aplicarTransformacoes() {
         fotoUser.style.transform = `translate(${currentTranslateX}px, ${currentTranslateY}px) scale(${currentScale})`;
@@ -310,9 +367,10 @@
         return Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY);
     }
 
-    // --- TOQUE MOBILE ---
+    // --- MOVIMENTOS MOBILE ---
     areaFoto.addEventListener('touchstart', (e) => {
         if (!inputFoto.files[0]) return;
+        resgatarModoEdicao();
         if (e.touches.length === 1) {
             isDragging = true;
             startX = e.touches[0].clientX - (currentTranslateX * currentScale);
@@ -343,9 +401,10 @@
         if (e.touches.length < 2) initialPinchDistance = 0;
     });
 
-    // --- MOUSE DESKTOP ---
+    // --- MOUSE ---
     areaFoto.addEventListener('mousedown', (e) => {
         if (!inputFoto.files[0]) return;
+        resgatarModoEdicao();
         isDragging = true;
         startX = e.clientX - (currentTranslateX * currentScale);
         startY = e.clientY - (currentTranslateY * currentScale);
@@ -366,9 +425,10 @@
         currentTranslateX = 0;
         currentTranslateY = 0;
         aplicarTransformacoes();
+        resgatarModoEdicao();
     });
 
-    // LÓGICA DE EXPORTAÇÃO E BAIXAR CORRIGIDA PARA TODOS OS NAVEGADORES
+    // SISTEMA INFALÍVEL DE SALVAMENTO PARA NAVEGADORES DE INSTAGRAM/WHATSAPP
     btnDownload.addEventListener('click', () => {
         if(!inputFoto.files[0]) {
             alert("Por favor, selecione uma foto primeiro!");
@@ -376,44 +436,39 @@
         }
 
         btnDownload.innerText = "GERANDO...";
-        btnDownload.disabled = true;
-
-        const card = document.getElementById('card-evento');
         
-        // Garante que as imagens locais carreguem perfeitamente antes da captura
-        html2canvas(card, {
-            useCORS: true,
-            allowTaint: true,
-            scale: 2,
-            logging: false
-        }).then(canvas => {
-            try {
+        // Pequena pausa para garantir suavidade visual
+        setTimeout(() => {
+            html2canvas(cardEvento, {
+                useCORS: true,
+                allowTaint: true,
+                scale: 2
+            }).then(canvas => {
                 const imgData = canvas.toDataURL('image/png');
                 
-                // Método automático de download
+                // 1. Alimenta a tag de imagem com o print finalizado
+                imgResultado.src = imgData;
+                imgResultado.style.display = 'block';
+                
+                // 2. Esconde o card editável por trás para liberar o toque nativo do celular
+                cardEvento.style.opacity = '0';
+                
+                // 3. Exibe instrução piscante e limpa os textos de ajuda
+                alertaSalvar.style.display = 'block';
+                msgAjuda.style.display = 'none';
+                btnDownload.innerText = "CARD GERADO! ⬆️";
+
+                // 4. Tentativa secundária em background caso esteja em desktop (baixa direto)
                 const link = document.createElement('a');
                 link.download = 'meu-card-oficial.png';
                 link.href = imgData;
-                document.body.appendChild(link);
                 link.click();
-                document.body.removeChild(link);
-            } catch (err) {
-                // Alternativa infalível para navegadores de aplicativos mobile (Instagram, Facebook, etc)
-                const novaAba = window.open();
-                if(novaAba) {
-                    novaAba.document.write(`<h2 style="font-family:sans-serif; text-align:center; margin-top:20px;">Segure o dedo na imagem abaixo para Salvar</h2><img src="${canvas.toDataURL('image/png')}" style="width:100%; max-width:450px; display:block; margin:20px auto; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,0.3);"/>`);
-                } else {
-                    alert("Por favor, permita pop-ups ou tente em um navegador externo (Chrome/Safari).");
-                }
-            } finally {
-                btnDownload.innerText = "SALVAR CARD";
-                btnDownload.disabled = false;
-            }
-        }).catch(error => {
-            alert("Erro ao gerar imagem. Tente novamente.");
-            btnDownload.innerText = "SALVAR CARD";
-            btnDownload.disabled = false;
-        });
+
+            }).catch(error => {
+                alert("Erro ao processar imagem. Tente ajustar novamente.");
+                resgatarModoEdicao();
+            });
+        }, 300);
     });
 </script>
 </body>
