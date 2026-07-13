@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gerador de Card Oficial - Ciclismo</title>
+    <title>Gerador de Card Official - Ciclismo</title>
     
     <style>
         * {
@@ -293,7 +293,7 @@
         return Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY);
     }
 
-    // --- INTERAÇÕES DE ARRASTAR E ZOOM (IGUAL AO SEU ORIGINAL) ---
+    // --- INTERAÇÕES DE ARRASTAR E ZOOM ---
     areaFoto.addEventListener('touchstart', (e) => {
         if (!inputFoto.files[0]) return;
         if (e.touches.length === 1) {
@@ -352,7 +352,7 @@
         ctx.closePath();
     }
 
-    // --- CORREÇÃO DO MOTOR DO CANVAS NATIVO ---
+    // --- MOTOR DO CANVAS ADAPTADO COM A LÓGICA DO SEGUNDO CÓDIGO ---
     btnDownload.onclick = () => {
         if (!inputFoto.files[0] || !fotoUser.src) return alert("Selecione sua foto primeiro!");
 
@@ -368,9 +368,9 @@
         molduraImg.src = 'fundo.png';
         
         molduraImg.onload = () => {
-            ctx.fillStyle = '#022c22';
-            ctx.fillRect(0, 0, 1080, 1920);
+            ctx.clearRect(0, 0, 1080, 1920);
 
+            // PASSO 1: Desenhar a FOTO primeiro com máscara de recorte
             const wBox = 1080 * 0.84; 
             const hBox = 1920 * 0.41; 
             const xBox = (1080 - wBox) / 2;
@@ -378,9 +378,8 @@
 
             ctx.save();
             drawRoundedRect(ctx, xBox, yBox, wBox, hBox, 42);
-            ctx.clip();
+            ctx.clip(); // Trava a foto dentro da área cortada
 
-            // Simula matematicamente o comportamento exato do 'object-fit: cover' baseado nas proporções reais
             const imgRatio = fotoUser.naturalWidth / fotoUser.naturalHeight;
             const boxRatio = wBox / hBox;
 
@@ -393,22 +392,21 @@
                 renderH = wBox / imgRatio;
             }
 
-            // Descobre a proporção de conversão do tamanho da div da tela para o tamanho do Canvas
-            const fConversaoHD = 1080 / areaFoto.parentElement.clientWidth;
+            const fConversaoHD = 1080 / areaFoto.clientWidth;
 
-            // Aplica os desvios de translação com base no centro geométrico da caixa (Imitando perfeitamente o CSS)
             ctx.translate(xBox + wBox / 2, yBox + hBox / 2);
             ctx.translate(translateX * fConversaoHD, translateY * fConversaoHD);
             ctx.scale(scale, scale);
 
-            // Desenha a imagem aplicando o offset negativo para que o centro coincida com o ponto modificado
             ctx.drawImage(fotoUser, -renderW / 2, -renderH / 2, renderW, renderH);
             ctx.restore();
 
-            // Moldura por cima
+            // PASSO 2: Desenhar a MOLDURA por cima usando a técnica do modelo 2
+            ctx.globalCompositeOperation = 'destination-over'; 
             ctx.drawImage(molduraImg, 0, 0, 1080, 1920);
+            ctx.globalCompositeOperation = 'source-over'; // Reseta para o padrão antes do texto
 
-            // Texto do nome
+            // PASSO 3: Texto do nome por cima de tudo
             ctx.fillStyle = "#ffffff";
             ctx.font = "900 66px Arial";
             ctx.textAlign = "center";
@@ -422,7 +420,7 @@
             ctx.strokeText(textoNome.textContent, xTexto, yTexto);
             ctx.fillText(textoNome.textContent, xTexto, yTexto);
 
-            // Força a conversão e o download do arquivo de imagem gerado pelo Canvas
+            // Executa o download final
             const link = document.createElement('a');
             link.download = 'Desafio_Araras_Story.png';
             link.href = canvas.toDataURL('image/png', 1.0);
