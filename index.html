@@ -91,11 +91,11 @@
             background-image: url("fundo.png");
             background-size: cover;
             background-position: center;
-            z-index: 3; /* Trazido para frente para garantir a sobreposição perfeita */
+            z-index: 1;
             pointer-events: none;
         }
 
-        /* 2. ÁREA DA FOTO (MUDOU PARA DIV BACKGROUND) */
+        /* 2. ÁREA DA FOTO */
         #area-foto {
             position: absolute;
             top: 63%;      
@@ -103,22 +103,26 @@
             transform: translate(-50%, -50%);
             width: 84%;    
             height: 41%;   
-            z-index: 1;  
+            z-index: 2;  
             overflow: hidden; 
             border-radius: 14px;
             cursor: grab;
             user-select: none;
             touch-action: none;
             background: #011410;
-            
-            /* Propriedades do background da foto do usuário */
-            background-repeat: no-repeat;
-            background-position: center center;
-            background-size: cover;
         }
 
         #area-foto:active {
             cursor: grabbing;
+        }
+
+        #foto-user {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            pointer-events: none;
+            transform-origin: center center;
         }
 
         #foto-placeholder {
@@ -129,7 +133,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            z-index: 2;
+            z-index: 3;
             text-align: center;
             padding: 10px;
             pointer-events: none;
@@ -212,8 +216,8 @@
         <div id="card-evento">
             <div id="moldura-bg"></div>
             
-            <!-- A foto agora carrega diretamente como plano de fundo desta div -->
             <div id="area-foto">
+                <img id="foto-user" alt="Sua foto de corredor" style="display: none;">
                 <div id="foto-placeholder">
                     <span>📸</span>
                     <p>Toque abaixo para escolher uma foto</p>
@@ -241,16 +245,13 @@
 <script>
     const inputFoto = document.getElementById('input-foto');
     const areaFoto = document.getElementById('area-foto');
+    const fotoUser = document.getElementById('foto-user');
     const fotoPlaceholder = document.getElementById('foto-placeholder');
     const nomeCorredor = document.getElementById('nome-corredor');
     const textoNome = document.getElementById('texto-nome');
     const msgAjuda = document.getElementById('msg-ajuda');
     const btnDownload = document.getElementById('btnDownload');
 
-    // Imagem na memória para manter as proporções reais do arquivo carregado
-    let imgOriginal = new Image();
-
-    // Estado do ajuste (Modificado via Arrastar e Pinch Zoom)
     let scale = 1;
     let translateX = 0;
     let translateY = 0;
@@ -270,37 +271,31 @@
         if (file) {
             const reader = new FileReader();
             reader.onload = function(event) {
-                imgOriginal.src = event.target.result;
+                fotoUser.src = event.target.result;
+                fotoUser.style.display = 'block';
+                fotoPlaceholder.style.display = 'none';
+                msgAjuda.style.display = 'block';
                 
-                imgOriginal.onload = function() {
-                    areaFoto.style.backgroundImage = `url('${event.target.result}')`;
-                    fotoPlaceholder.style.display = 'none';
-                    msgAjuda.style.display = 'block';
-                    
-                    // Reseta os ajustes para a nova foto
-                    scale = 1;
-                    translateX = 0;
-                    translateY = 0;
-                    atualizarCSS();
-                }
+                scale = 1;
+                translateX = 0;
+                translateY = 0;
+                atualizarCSS();
             }
             reader.readAsDataURL(file);
         }
     });
 
     function atualizarCSS() {
-        // Controla o posicionamento e escala do background dinamicamente com base nas interações
-        areaFoto.style.backgroundSize = `${scale * 100}%`;
-        areaFoto.style.backgroundPosition = `calc(50% + ${translateX}px) calc(50% + ${translateY}px)`;
+        fotoUser.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
     }
 
     function getDistance(touch1, touch2) {
         return Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY);
     }
 
-    // --- INTERAÇÕES TOUCH (CELULAR) ---
+    // --- INTERAÇÕES DE ARRASTAR E ZOOM (IGUAL AO SEU ORIGINAL) ---
     areaFoto.addEventListener('touchstart', (e) => {
-        if (!imgOriginal.src) return;
+        if (!inputFoto.files[0]) return;
         if (e.touches.length === 1) {
             isDragging = true;
             startX = e.touches[0].clientX - translateX;
@@ -313,7 +308,7 @@
     });
 
     window.addEventListener('touchmove', (e) => {
-        if (!imgOriginal.src) return;
+        if (!inputFoto.files[0]) return;
         if (e.touches.length === 1 && isDragging) {
             translateX = e.touches[0].clientX - startX;
             translateY = e.touches[0].clientY - startY;
@@ -321,16 +316,15 @@
         } else if (e.touches.length === 2 && initialPinchDistance > 0) {
             const currentDistance = getDistance(e.touches[0], e.touches[1]);
             const factor = currentDistance / initialPinchDistance;
-            scale = Math.min(Math.max(initialScale * factor, 0.5), 8);
+            scale = Math.min(Math.max(initialScale * factor, 0.4), 5);
             atualizarCSS();
         }
     });
 
     window.addEventListener('touchend', () => { isDragging = false; initialPinchDistance = 0; });
     
-    // --- INTERAÇÕES MOUSE (DESKTOP) ---
     areaFoto.addEventListener('mousedown', (e) => {
-        if (!imgOriginal.src) return;
+        if (!inputFoto.files[0]) return;
         isDragging = true;
         startX = e.clientX - translateX;
         startY = e.clientY - translateY;
@@ -344,7 +338,6 @@
     });
     window.addEventListener('mouseup', () => { isDragging = false; });
 
-    // Função auxiliar para desenhar o retângulo com bordas arredondadas no canvas
     function drawRoundedRect(ctx, x, y, width, height, radius) {
         ctx.beginPath();
         ctx.moveTo(x + radius, y);
@@ -359,9 +352,9 @@
         ctx.closePath();
     }
 
-    // --- NOVO PROCESSO DE DOWNLOAD MATEMATICAMENTE INFAÍVEL ---
+    // --- CORREÇÃO DO MOTOR DO CANVAS NATIVO ---
     btnDownload.onclick = () => {
-        if (!imgOriginal.src) return alert("Selecione sua foto primeiro!");
+        if (!inputFoto.files[0] || !fotoUser.src) return alert("Selecione sua foto primeiro!");
 
         btnDownload.innerText = "PROCESSANDO...";
         btnDownload.disabled = true;
@@ -375,49 +368,47 @@
         molduraImg.src = 'fundo.png';
         
         molduraImg.onload = () => {
-            // 1. Limpa o fundo com a cor base verde escura
             ctx.fillStyle = '#022c22';
             ctx.fillRect(0, 0, 1080, 1920);
 
-            // 2. Define as dimensões exatas da caixa de foto na proporção HD (1080px)
             const wBox = 1080 * 0.84; 
             const hBox = 1920 * 0.41; 
             const xBox = (1080 - wBox) / 2;
             const yBox = (1920 * 0.63) - (hBox / 2);
 
             ctx.save();
-            // Faz o corte redondo na foto para não vazar pelas bordas da moldura
             drawRoundedRect(ctx, xBox, yBox, wBox, hBox, 42);
             ctx.clip();
 
-            // Descobre o fator multiplicador entre a tela do celular e o Canvas HD
-            const fatorConversao = 1080 / areaFoto.parentElement.clientWidth;
+            // Simula matematicamente o comportamento exato do 'object-fit: cover' baseado nas proporções reais
+            const imgRatio = fotoUser.naturalWidth / fotoUser.naturalHeight;
+            const boxRatio = wBox / hBox;
 
-            // Calcula o tamanho da foto baseado no comportamento idêntico do CSS background-size: cover
-            const fX = wBox / imgOriginal.width;
-            const fY = hBox / imgOriginal.height;
-            const coverScaleBase = Math.max(fX, fY);
+            let renderW, renderH;
+            if (imgRatio > boxRatio) {
+                renderH = hBox;
+                renderW = hBox * imgRatio;
+            } else {
+                renderW = wBox;
+                renderH = wBox / imgRatio;
+            }
 
-            // Largura e Altura que a foto teria se estivesse estática e centralizada no Canvas
-            const baseW = imgOriginal.width * coverScaleBase;
-            const baseH = imgOriginal.height * coverScaleBase;
+            // Descobre a proporção de conversão do tamanho da div da tela para o tamanho do Canvas
+            const fConversaoHD = 1080 / areaFoto.parentElement.clientWidth;
 
-            // Aplica os multiplicadores exatos do Zoom e Arrastar ajustados na interface
-            const finalW = baseW * scale;
-            const finalH = baseH * scale;
+            // Aplica os desvios de translação com base no centro geométrico da caixa (Imitando perfeitamente o CSS)
+            ctx.translate(xBox + wBox / 2, yBox + hBox / 2);
+            ctx.translate(translateX * fConversaoHD, translateY * fConversaoHD);
+            ctx.scale(scale, scale);
 
-            // Centraliza o ponto de renderização e soma o deslocamento exato feito pelo usuário
-            const renderX = xBox + (wBox - finalW) / 2 + (translateX * fatorConversao);
-            const renderY = yBox + (hBox - finalH) / 2 + (translateY * fatorConversao);
-
-            // Desenha a foto do atleta
-            ctx.drawImage(imgOriginal, renderX, renderY, finalW, finalH);
+            // Desenha a imagem aplicando o offset negativo para que o centro coincida com o ponto modificado
+            ctx.drawImage(fotoUser, -renderW / 2, -renderH / 2, renderW, renderH);
             ctx.restore();
 
-            // 3. Desenha a moldura por cima (Garante que marcas d'água e patrocinadores fiquem na frente)
+            // Moldura por cima
             ctx.drawImage(molduraImg, 0, 0, 1080, 1920);
 
-            // 4. Renderiza o texto do nome
+            // Texto do nome
             ctx.fillStyle = "#ffffff";
             ctx.font = "900 66px Arial";
             ctx.textAlign = "center";
@@ -426,13 +417,12 @@
             const xTexto = 1080 / 2;
             const yTexto = 1920 - 125; 
 
-            // Contorno preto pesado atrás do texto para dar legibilidade igual ao print
             ctx.strokeStyle = "#000000";
             ctx.lineWidth = 12;
             ctx.strokeText(textoNome.textContent, xTexto, yTexto);
             ctx.fillText(textoNome.textContent, xTexto, yTexto);
 
-            // 5. Gera o download forçado e limpo do arquivo consolidado
+            // Força a conversão e o download do arquivo de imagem gerado pelo Canvas
             const link = document.createElement('a');
             link.download = 'Desafio_Araras_Story.png';
             link.href = canvas.toDataURL('image/png', 1.0);
@@ -445,7 +435,7 @@
         };
 
         molduraImg.onerror = () => {
-            alert("Erro ao carregar 'fundo.png'. Verifique se o arquivo está na pasta correta.");
+            alert("Erro ao carregar 'fundo.png'.");
             btnDownload.innerText = "2. Baixar Story";
             btnDownload.disabled = false;
         };
