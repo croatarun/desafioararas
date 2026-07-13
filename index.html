@@ -97,7 +97,7 @@
             pointer-events: none;
         }
 
-        /* 2. ÁREA DA FOTO */
+        /* 2. ÁREA DA FOTO (NOVA ESTRUTURA SEM CSS DYNÂMICO DE SOBREPOSIÇÃO) */
         #area-foto {
             position: absolute;
             top: 63%;      
@@ -118,14 +118,13 @@
             cursor: grabbing;
         }
 
-        /* Mudança para garantir compatibilidade: posicionamento limpo via CSS Transform puro durante a edição */
         #foto-user {
-            position: absolute;
             width: 100%;
             height: 100%;
             object-fit: cover;
             pointer-events: none;
             transform-origin: center center;
+            transition: transform 0.01s ease-out;
         }
 
         #foto-placeholder {
@@ -191,21 +190,15 @@
 
         button {
             flex: 1;
-            padding: 14px 10px;
+            padding: 15px;
             border-radius: 12px;
             border: none;
             font-weight: 900;
             cursor: pointer;
             text-transform: uppercase;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            font-size: 0.9rem;
         }
 
         #btn-download { background: #16a34a; color: white; }
-        #btn-view { background: #475569; color: white; }
         
         .instrucao-arrastar {
             text-align: center;
@@ -254,14 +247,7 @@
             </p>
 
             <div class="action-buttons">
-                <button id="btn-download" type="button">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-                    Salvar
-                </button>
-                <button id="btn-view" type="button">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/></svg>
-                    Visualizar em Outra Aba
-                </button>
+                <button id="btn-download" type="button">Salvar Card</button>
             </div>
         </div>
     </main>
@@ -276,14 +262,14 @@
     const textoNome = document.getElementById('texto-nome');
     const msgAjuda = document.getElementById('msg-ajuda');
     const btnDownload = document.getElementById('btn-download');
-    const btnView = document.getElementById('btn-view');
     const cardEvento = document.getElementById('card-evento');
 
-    // Retornamos ao controle estável de escala/translação
-    let scale = 1;
-    let translateX = 0;
-    let translateY = 0;
+    // Estados de transformação da foto
+    let currentScale = 1;
+    let currentTranslateX = 0;
+    let currentTranslateY = 0;
     
+    // Variáveis auxiliares de controle de toque e mouse
     let isDragging = false;
     let startX = 0;
     let startY = 0;
@@ -304,48 +290,54 @@
                 fotoPlaceholder.style.display = 'none';
                 msgAjuda.style.display = 'block';
                 
-                scale = 1;
-                translateX = 0;
-                translateY = 0;
-                atualizarCSS();
+                // Reinicia posições
+                currentScale = 1;
+                currentTranslateX = 0;
+                currentTranslateY = 0;
+                aplicarTransformacoes();
+
+                btnDownload.innerText = "SALVAR CARD";
+                btnDownload.disabled = false;
             }
             reader.readAsDataURL(file);
         }
     });
 
-    function atualizarCSS() {
-        fotoUser.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+    function aplicarTransformacoes() {
+        fotoUser.style.transform = `translate(${currentTranslateX}px, ${currentTranslateY}px) scale(${currentScale})`;
     }
 
     function getDistance(touch1, touch2) {
         return Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY);
     }
 
-    // --- CONTROLES DE TOQUE MOBILE ---
+    // --- ENTRADAS DE GESTOS MOBILE ---
     areaFoto.addEventListener('touchstart', (e) => {
         if (!inputFoto.files[0]) return;
         if (e.touches.length === 1) {
             isDragging = true;
-            startX = e.touches[0].clientX - translateX;
-            startY = e.touches[0].clientY - translateY;
+            startX = e.touches[0].clientX - (currentTranslateX * currentScale);
+            startY = e.touches[0].clientY - (currentTranslateY * currentScale);
         } else if (e.touches.length === 2) {
             isDragging = false; 
             initialPinchDistance = getDistance(e.touches[0], e.touches[1]);
-            initialScale = scale;
+            initialScale = currentScale;
         }
     });
 
     window.addEventListener('touchmove', (e) => {
         if (!inputFoto.files[0]) return;
         if (e.touches.length === 1 && isDragging) {
-            translateX = e.touches[0].clientX - startX;
-            translateY = e.touches[0].clientY - startY;
-            atualizarCSS();
+            currentTranslateX = (e.touches[0].clientX - startX) / currentScale;
+            currentTranslateY = (e.touches[0].clientY - startY) / currentScale;
+            aplicarTransformacoes();
         } else if (e.touches.length === 2 && initialPinchDistance > 0) {
             const currentDistance = getDistance(e.touches[0], e.touches[1]);
             const factor = currentDistance / initialPinchDistance;
-            scale = Math.min(Math.max(initialScale * factor, 0.3), 5);
-            atualizarCSS();
+            
+            // Limita o zoom entre 0.4x e 4x para melhor usabilidade
+            currentScale = Math.min(Math.max(initialScale * factor, 0.4), 4);
+            aplicarTransformacoes();
         }
     });
 
@@ -354,154 +346,75 @@
         if (e.touches.length < 2) initialPinchDistance = 0;
     });
 
-    // --- CONTROLES DE MOUSE DESKTOP ---
+    // --- ENTRADAS DE MOUSE DESKTOP ---
     areaFoto.addEventListener('mousedown', (e) => {
         if (!inputFoto.files[0]) return;
         isDragging = true;
-        startX = e.clientX - translateX;
-        startY = e.clientY - translateY;
+        startX = e.clientX - (currentTranslateX * currentScale);
+        startY = e.clientY - (currentTranslateY * currentScale);
     });
 
     window.addEventListener('mousemove', (e) => {
         if (isDragging) {
-            translateX = e.clientX - startX;
-            translateY = e.clientY - startY;
-            atualizarCSS();
+            currentTranslateX = (e.clientX - startX) / currentScale;
+            currentTranslateY = (e.clientY - startY) / currentScale;
+            aplicarTransformacoes();
         }
     });
 
     window.addEventListener('mouseup', () => { isDragging = false; });
 
-
-    // --- NOVO MOTOR DE PROCESSAMENTO INFALÍVEL (CORREÇÃO DA FOTO PRETA) ---
-    function gerarCanvasEstavel(callback) {
-        // Passo 1: Captura o background (moldura) e textos de forma nativa e limpa
-        // Escondemos temporariamente a foto bugada do html2canvas para ele focar apenas nos elementos estáticos
-        fotoUser.style.opacity = "0";
-
-        html2canvas(cardEvento, {
-            scale: 3, // Definição Premium Ultra HD
-            useCORS: true,
-            allowTaint: false,
-            backgroundColor: null,
-            logging: false,
-            imageTimeout: 0
-        }).then(cardCanvas => {
-            // Restaura visibilidade na tela
-            fotoUser.style.opacity = "1";
-
-            // Criamos o renderizador secundário via código nativo (Corrige o bug de corte)
-            const finalCanvas = document.createElement('canvas');
-            finalCanvas.width = cardCanvas.width;
-            finalCanvas.height = cardCanvas.height;
-            const ctx = finalCanvas.getContext('2d');
-
-            // Descobrimos as proporções dinâmicas da tela gerada pelo html2canvas
-            const proporcaoCard = cardCanvas.width / cardEvento.clientWidth;
-
-            // Coordenadas milimetricamente exatas da caixa da foto dentro do card finalizado
-            const xFoto = (cardEvento.clientWidth * 0.08) * proporcaoCard; 
-            const yFoto = (cardEvento.clientHeight * 0.425) * proporcaoCard; 
-            const wFoto = (cardEvento.clientWidth * 0.84) * proporcaoCard; 
-            const hFoto = (cardEvento.clientHeight * 0.41) * proporcaoCard;
-
-            // Criamos o recorte arredondado idêntico ao do app
-            ctx.save();
-            const raioBorda = 14 * proporcaoCard;
-            ctx.beginPath();
-            ctx.moveTo(xFoto + raioBorda, yFoto);
-            ctx.lineTo(xFoto + wFoto - raioBorda, yFoto);
-            ctx.quadraticCurveTo(xFoto + wFoto, yFoto, xFoto + wFoto, yFoto + raioBorda);
-            ctx.lineTo(xFoto + wFoto, yFoto + hFoto - raioBorda);
-            ctx.quadraticCurveTo(xFoto + wFoto, yFoto + hFoto, xFoto + wFoto - raioBorda, yFoto + hFoto);
-            ctx.lineTo(xFoto + raioBorda, yFoto + hFoto);
-            ctx.quadraticCurveTo(xFoto, yFoto + hFoto, xFoto, yFoto + hFoto - raioBorda);
-            ctx.lineTo(xFoto, yFoto + raioBorda);
-            ctx.quadraticCurveTo(xFoto, yFoto, xFoto + raioBorda, yFoto);
-            ctx.closePath();
-            ctx.clip(); // Ativa a máscara de corte perfeita
-
-            // Desenhamos a foto aplicando os dados exatos calculados na tela (sem usar CSS transform)
-            const imgOriginal = new Image();
-            imgOriginal.src = fotoUser.src;
-            imgOriginal.onload = function() {
-                // Descobre dimensões equivalentes para preenchimento proporcional (object-fit: cover nativo)
-                let renderW = wFoto * scale;
-                let renderH = (imgOriginal.naturalHeight / imgOriginal.naturalWidth) * renderW;
-                
-                if(renderH < hFoto * scale) {
-                    renderH = hFoto * scale;
-                    renderW = (imgOriginal.naturalWidth / imgOriginal.naturalHeight) * renderH;
-                }
-
-                // Aplica deslocamento manual feito pelos dedos
-                const renderX = xFoto + (wFoto - renderW) / 2 + (translateX * proporcaoCard);
-                const renderY = yFoto + (hFoto - renderH) / 2 + (translateY * proporcaoCard);
-
-                ctx.drawImage(imgOriginal, renderX, renderY, renderW, renderH);
-                ctx.restore(); // Finaliza a camada da foto
-
-                // Por fim, injetamos a moldura e o texto por CIMA da foto, como deve ser
-                ctx.drawImage(cardCanvas, 0, 0);
-
-                callback(finalCanvas);
-            };
-        }).catch(err => {
-            alert("Erro de processamento.");
-            btnDownload.disabled = false;
-            btnView.disabled = false;
-        });
-    }
-
-    // BOTÃO 1: SALVAR DIRETO
+    // --- PROCESSO DE EXPORTAÇÃO HD COM NOVA ESTRUTURA LOGICA DE RENDERIZAÇÃO ---
     btnDownload.addEventListener('click', () => {
         if(!inputFoto.files[0]) {
             alert("Por favor, selecione uma foto primeiro!");
             return;
         }
 
+        btnDownload.innerText = "AGUARDE, BAIXANDO EM HD...";
         btnDownload.disabled = true;
-        btnDownload.innerText = "AGUARDE...";
 
-        gerarCanvasEstavel((canvas) => {
+        // Configurações de alta fidelidade
+        html2canvas(cardEvento, {
+            scale: 3,                // Multiplica a densidade por 3x (Super Resolução Ultra HD)
+            useCORS: true,           // Evita quebra de imagens externas
+            allowTaint: false,
+            backgroundColor: null,   // Evita fundos brancos fantasmas
+            logging: false,
+            imageTimeout: 0,         // Não encerra o processamento antes de carregar os pixels modificados
+            onclone: (clonedDoc) => {
+                // Força o elemento clonado a manter as propriedades exatas de visualização
+                // O CANVAS AGORA RENDERIZA A FOTO COMO UM BLOCO INTEGRADO, NÃO SOBREPOSTO
+                const clonedArea = clonedDoc.getElementById('area-foto');
+                const clonedFoto = clonedDoc.getElementById('foto-user');
+                if (clonedFoto) {
+                    clonedFoto.style.transform = `translate(${currentTranslateX}px, ${currentTranslateY}px) scale(${currentScale})`;
+                }
+            }
+        }).then(canvas => {
             canvas.toBlob((blob) => {
                 if (blob) {
                     const url = window.URL.createObjectURL(blob);
                     const link = document.createElement('a');
                     link.href = url;
                     link.download = 'meu-card-oficial.png';
+                    
                     document.body.appendChild(link);
                     link.click();
+                    
                     document.body.removeChild(link);
                     window.URL.revokeObjectURL(url);
+                } else {
+                    alert("Erro ao processar imagem de alta qualidade.");
                 }
+                
+                btnDownload.innerText = "SALVAR CARD";
                 btnDownload.disabled = false;
-                btnDownload.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg> Salvar`;
-            }, 'image/png', 1.0);
-        });
-    });
-
-    // BOTÃO 2: VISUALIZAR EM OUTRA ABA
-    btnView.addEventListener('click', () => {
-        if(!inputFoto.files[0]) {
-            alert("Por favor, selecione uma foto primeiro!");
-            return;
-        }
-
-        btnView.disabled = true;
-        btnView.innerText = "ABRINDO...";
-
-        gerarCanvasEstavel((canvas) => {
-            const imgData = canvas.toDataURL('image/png', 1.0);
-            const novaAba = window.open();
-            if(novaAba) {
-                novaAba.document.write(`<html lang="pt-BR"><head><title>Card Oficial</title><style>body{margin:0;background:#022c22;display:flex;justify-content:center;align-items:center;min-height:100vh;}img{max-width:100%;max-height:100vh;box-shadow:0 0 30px rgba(0,0,0,0.5);}</style></head><body><img src="${imgData}" /></body></html>`);
-                novaAba.document.close();
-            } else {
-                alert("O navegador bloqueou a abertura da nova aba. Use o botão Salvar.");
-            }
-            btnView.disabled = false;
-            btnView.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/></svg> Visualizar em Outra Aba`;
+            }, 'image/png', 1.0); // Qualidade máxima
+        }).catch(error => {
+            alert("Não foi possível gerar seu card. Verifique as permissões do seu navegador.");
+            btnDownload.innerText = "SALVAR CARD";
+            btnDownload.disabled = false;
         });
     });
 </script>
