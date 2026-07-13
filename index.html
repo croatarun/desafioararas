@@ -354,31 +354,29 @@
         ctx.closePath();
     }
 
-    // --- NOVO MOTOR DE DOWNLOAD CANVAS COM REPRODUÇÃO MATRICIAL CORRETA ---
+    // --- PROCESSO DE DOWNLOAD ADAPTADO ANTI-BLOQUEIO DE MOLDURA ---
     btnDownload.onclick = () => {
-        if (!inputFoto.files[0]) return alert("Selecione sua foto primeiro!");
+        if (!inputFoto.files[0] || !fotoUser.src) return alert("Selecione sua foto primeiro!");
 
         btnDownload.innerText = "PROCESSANDO...";
         btnDownload.disabled = true;
 
-        // Configura o canvas em alta resolução (1080x1920)
         const canvas = document.createElement('canvas');
         canvas.width = 1080;
         canvas.height = 1920;
         const ctx = canvas.getContext('2d');
 
         const molduraImg = new Image();
+        // Força o navegador a tratar de forma anônima mitigando qualquer travamento local de CORS
+        molduraImg.crossOrigin = "anonymous"; 
         molduraImg.src = 'fundo.png';
         
-        const atletaImg = new Image();
-        atletaImg.src = fotoUser.src;
-
         molduraImg.onload = () => {
             // 1. Preenche o fundo básico com a cor padrão
             ctx.fillStyle = '#022c22';
             ctx.fillRect(0, 0, 1080, 1920);
 
-            // 2. Caixa de recorte proporcional (84% larg, 41% alt) com base nos parâmetros originais
+            // 2. Caixa de recorte proporcional (84% larg, 41% alt)
             const wBox = 1080 * 0.84; 
             const hBox = 1920 * 0.41; 
             const xBox = (1080 - wBox) / 2;
@@ -388,33 +386,33 @@
             drawRoundedRect(ctx, xBox, yBox, wBox, hBox, 42);
             ctx.clip();
 
-            // Mapeia o tamanho em tela para capturar as proporções do object-fit: cover nativo
+            // Mapeia o tamanho em tela para capturar as proporções exatas do object-fit: cover da tela
             const exibicaoW = areaFoto.clientWidth;
             const exibicaoH = areaFoto.clientHeight;
-            const ratioW = exibicaoW / atletaImg.naturalWidth;
-            const ratioH = exibicaoH / atletaImg.naturalHeight;
+            const ratioW = exibicaoW / fotoUser.naturalWidth;
+            const ratioH = exibicaoH / fotoUser.naturalHeight;
             const coverScale = Math.max(ratioW, ratioH);
 
-            // Largura e altura da imagem se estivesse em object-fit: cover estático em relação à caixa
-            const baseW = atletaImg.naturalWidth * coverScale;
-            const baseH = atletaImg.naturalHeight * coverScale;
+            // Largura e altura base calculada
+            const baseW = fotoUser.naturalWidth * coverScale;
+            const baseH = fotoUser.naturalHeight * coverScale;
 
-            // Fator multiplicador de conversão da tela para a resolução interna HD do Canvas (1080px)
-            const fatorConversaoHD = 1080 / areaFoto.parentElement.clientWidth;
+            // Fator multiplicador de tela física para a proporção HD do Canvas
+            const fConversaoHD = 1080 / areaFoto.parentElement.clientWidth;
 
-            // Transpõe a lógica exata de renderização do CSS (Center Origin + Translate + Scale) para o Canvas
-            ctx.translate(xBox + wBox / 2, yBox + hBox / 2); // Vai ao centro da caixa
-            ctx.translate(translateX * fatorConversaoHD, translateY * fatorConversaoHD); // Aplica o movimento do usuário
-            ctx.scale(scale, scale); // Aplica o zoom do usuário
+            // Aplica translação matricial baseada no ponto central exato (Igual ao transform-origin do CSS)
+            ctx.translate(xBox + wBox / 2, yBox + hBox / 2); 
+            ctx.translate(translateX * fConversaoHD, translateY * fConversaoHD); 
+            ctx.scale(scale, scale); 
 
-            // Desenha a imagem centralizada no novo ponto de origem matricial corrigido
-            ctx.drawImage(atletaImg, -baseW / 2 * fatorConversaoHD, -baseH / 2 * fatorConversaoHD, baseW * fatorConversaoHD, baseH * fatorConversaoHD);
+            // DESENHA COLETANDO A IMAGEM DIRETAMENTE DO OBJETO DOM DA TELA (Ignora bloqueios CORS)
+            ctx.drawImage(fotoUser, -baseW / 2 * fConversaoHD, -baseH / 2 * fConversaoHD, baseW * fConversaoHD, baseH * fConversaoHD);
             ctx.restore();
 
-            // 3. Desenha a sua moldura oficial por cima de tudo
+            // 3. Desenha a moldura oficial por cima
             ctx.drawImage(molduraImg, 0, 0, 1080, 1920);
 
-            // 4. Renderiza o texto nativamente com o contorno preto perfeito
+            // 4. Renderiza o texto
             ctx.fillStyle = "#ffffff";
             ctx.font = "900 66px Arial";
             ctx.textAlign = "center";
@@ -428,20 +426,24 @@
             ctx.strokeText(textoNome.textContent, xTexto, yTexto);
             ctx.fillText(textoNome.textContent, xTexto, yTexto);
 
-            // 5. Executa o download nativo via DataURL
-            const link = document.createElement('a');
-            link.download = 'Desafio_Araras_Story.png';
-            link.href = canvas.toDataURL('image/png', 1.0);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+            // 5. Executa o download nativo via DataURL que agora está totalmente limpo
+            try {
+                const link = document.createElement('a');
+                link.download = 'Desafio_Araras_Story.png';
+                link.href = canvas.toDataURL('image/png', 1.0);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } catch (err) {
+                alert("Ocorreu um erro de permissão no navegador ao tentar consolidar o arquivo. Tente atualizar a página ou usar outro navegador.");
+            }
 
             btnDownload.innerText = "2. Baixar Story";
             btnDownload.disabled = false;
         };
 
         molduraImg.onerror = () => {
-            alert("Erro ao carregar 'fundo.png'. Certifique-se de que o arquivo está no mesmo diretório.");
+            alert("Erro ao carregar 'fundo.png'. Verifique se o arquivo está na pasta correta.");
             btnDownload.innerText = "2. Baixar Story";
             btnDownload.disabled = false;
         };
