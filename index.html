@@ -1,206 +1,323 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gerador 2026</title>
-    <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Montserrat:wght@700;900&display=swap" rel="stylesheet">
+    <title>Gerador de Card Oficial - Ciclismo</title>
+    <!-- Biblioteca para exportar a div como imagem -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
     <style>
-        :root { --primary: #2d5a27; --bg: #f8fafc; }
-        body { font-family: 'Montserrat', sans-serif; background: var(--bg); display: flex; flex-direction: column; align-items: center; padding: 20px; margin: 0; }
-        .container { background: #ffffff; padding: 25px; border-radius: 30px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.15); max-width: 400px; width: 100%; }
-        h1 { font-size: 14px; text-align: center; color: var(--primary); letter-spacing: 2px; margin-bottom: 20px; text-transform: uppercase; }
-        .preview-box { width: 100%; aspect-ratio: 9/16; background: #e2e8f0; border-radius: 20px; overflow: hidden; border: 1px solid #cbd5e1; }
-        canvas { width: 100%; height: 100%; display: block; }
-        .controls { margin-top: 20px; background: #f1f5f9; padding: 20px; border-radius: 20px; }
-        label { font-size: 10px; font-weight: 900; color: #64748b; text-transform: uppercase; display: block; margin: 10px 0 5px; }
-        input[type="text"] { width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 12px; font-family: 'Montserrat'; font-weight: 700; box-sizing: border-box; margin-bottom: 5px; }
-        input[type="range"] { width: 100%; height: 6px; accent-color: var(--primary); margin-bottom: 10px; }
-        .btn { width: 100%; padding: 18px; border-radius: 15px; border: none; font-weight: 900; cursor: pointer; text-transform: uppercase; transition: 0.3s; }
-        .btn-upload { background: #0f172a; color: white; margin-bottom: 15px; }
-        .btn-download { background: var(--primary); color: white; margin-top: 20px; }
-        .row { display: flex; gap: 10px; }
-        .row div { flex: 1; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            padding: 22px;
+            font-family: Arial, sans-serif;
+            color: white;
+            overflow-x: hidden;
+            background:
+                radial-gradient(circle at top, rgba(74, 222, 128, 0.15), transparent 35%),
+                radial-gradient(circle at center, rgba(34, 197, 94, 0.1), transparent 55%),
+                linear-gradient(180deg, #022c22 0%, #064e3b 45%, #022c22 100%);
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        header h1 {
+            font-size: clamp(2rem, 8vw, 3.2rem);
+            font-weight: 900;
+            line-height: 1.15;
+            color: #f8fafc;
+            text-shadow: 0 0 18px rgba(74, 222, 128, 0.35);
+        }
+
+        header p {
+            margin-top: 12px;
+            color: #bbf7d0;
+            font-size: 1.05rem;
+            line-height: 1.4;
+        }
+
+        .card-box {
+            width: 100%;
+            padding: 20px;
+            border-radius: 28px;
+            background: rgba(2, 44, 34, 0.82);
+            border: 1px solid rgba(74, 222, 128, 0.28);
+            box-shadow: 0 0 35px rgba(22, 163, 74, 0.25);
+            backdrop-filter: blur(12px);
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        #nome-corredor {
+            width: 100%;
+            padding: 15px;
+            border-radius: 16px;
+            border: 1px solid rgba(74, 222, 128, 0.35);
+            background: rgba(2, 44, 34, 0.95);
+            color: white;
+            font-size: 1rem;
+            outline: none;
+        }
+
+        #card-evento {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 9 / 16;
+            overflow: hidden;
+            border-radius: 20px;
+            background: #022c22;
+            border: 1px solid rgba(74, 222, 128, 0.35);
+        }
+
+        /* 1. MOLDURA FLUTUANDO NA BASE DO CARD */
+        #moldura-bg {
+            position: absolute;
+            inset: 0;
+            background-image: url("fundo.png");
+            background-size: cover;
+            background-position: center;
+            z-index: 1; /* Camada de baixo */
+            pointer-events: none;
+        }
+
+        /* 2. ÁREA DA FOTO FICA POR CIMA DO FUNDO */
+        #area-foto {
+            position: absolute;
+            top: 55%; /* Centralizado no espaço do meio */
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+            height: 45%;
+            z-index: 2; /* Fica por CIMA do fundo (z-index: 1) */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: grab;
+        }
+
+        #foto-user {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            pointer-events: none;
+        }
+
+        #foto-placeholder {
+            position: absolute;
+            inset: 0;
+            background: rgba(2, 44, 34, 0.85);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 3;
+            text-align: center;
+            padding: 10px;
+        }
+
+        /* 3. TEXTO DO NOME FICA NO TOPO ABSOLUTO */
+        #texto-nome {
+            position: absolute;
+            bottom: 115px; /* Abaixo na imagem, acima dos patrocinadores */
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            text-align: center;
+            font-size: clamp(24px, 6vw, 36px);
+            font-weight: 900;
+            text-transform: uppercase;
+            color: #ffffff;
+            z-index: 10; /* Sempre no topo */
+            text-shadow:
+                2px 2px 0px #000,
+                -2px 2px 0px #000,
+                2px -2px 0px #000,
+                -2px -2px 0px #000;
+        }
+
+        /* CONTROLES */
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .file-label {
+            display: block;
+            text-align: center;
+            background: #0f172a;
+            padding: 14px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        input[type="file"] { display: none; }
+        
+        .control-item {
+            background: rgba(255,255,255,0.05);
+            padding: 10px;
+            border-radius: 10px;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            accent-color: #4ade80;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            flex: 1;
+            padding: 15px;
+            border-radius: 12px;
+            border: none;
+            font-weight: 900;
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+
+        #btn-reset { background: #334155; color: white; }
+        #btn-download { background: #16a34a; color: white; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>DESAFIO ARARAS 2026</h1>
-    <button class="btn btn-upload" onclick="document.getElementById('fileInput').click()">1. Escolher Foto</button>
-    <input type="file" id="fileInput" accept="image/*" style="display:none">
+    <header>
+        <h1>Gere seu Card Oficial</h1>
+        <p>Ajuste sua foto, digite seu nome e compartilhe nas redes!</p>
+    </header>
 
-    <div class="preview-box">
-        <canvas id="mainCanvas"></canvas>
-    </div>
+    <main class="card-box">
+        <!-- Input de Texto -->
+        <div class="input-group">
+            <input type="text" id="nome-corredor" placeholder="Digite seu nome completo" maxlength="25">
+        </div>
 
-    <div class="controls">
-        <label>Nome do Atleta</label>
-        <input type="text" id="nomeAtleta" placeholder="EX: JOÃO SILVA">
-        <label>Equipe</label>
-        <input type="text" id="equipeAtleta" placeholder="EX: RERIURUN">
-        
-        <label>Zoom da Foto</label>
-        <input type="range" id="zoom" min="0.1" max="3" step="0.01" value="1.0">
-        
-        <div class="row">
-            <div>
-                <label>Posição X (Horizontal)</label>
-                <input type="range" id="posX" min="-500" max="500" value="0">
+        <!-- Área do Card que será exportada -->
+        <div id="card-evento">
+            <div id="moldura-bg"></div>
+            
+            <div id="area-foto">
+                <img id="foto-user" alt="Sua foto de corredor" style="display: none;">
+                <div id="foto-placeholder">
+                    <span>📸</span>
+                    <p>Toque abaixo para escolher uma foto</p>
+                </div>
             </div>
-            <div>
-                <label>Posição Y (Vertical)</label>
-                <input type="range" id="posY" min="-600" max="600" value="0">
+
+            <div id="texto-nome">SEU NOME AQUI</div>
+        </div>
+
+        <!-- Painel de Controles -->
+        <div class="controls">
+            <label class="file-label">
+                1. Escolher Foto
+                <input type="file" id="input-foto" accept="image/*">
+            </label>
+
+            <div class="control-item">
+                <label for="slider-zoom">Zoom</label>
+                <input type="range" id="slider-zoom" min="100" max="300" value="100" disabled>
+            </div>
+
+            <div class="action-buttons">
+                <button id="btn-reset" type="button" disabled>Centralizar</button>
+                <button id="btn-download" type="button">Salvar Card</button>
             </div>
         </div>
-    </div>
-
-    <button class="btn btn-download" id="btnDownload">2. Baixar Story</button>
+    </main>
 </div>
 
 <script>
-    const canvas = document.getElementById('mainCanvas');
-    const ctx = canvas.getContext('2d');
-    const imgMoldura = new Image();
-    const imgAtleta = new Image();
+    // SCRIPT DE CONTROLE INTERNO ORIGINAL CORRIGIDO
+    const inputFoto = document.getElementById('input-foto');
+    const fotoUser = document.getElementById('foto-user');
+    const fotoPlaceholder = document.getElementById('foto-placeholder');
+    const nomeCorredor = document.getElementById('nome-corredor');
+    const textoNome = document.getElementById('texto-nome');
+    const sliderZoom = document.getElementById('slider-zoom');
+    const btnReset = document.getElementById('btn-reset');
+    const btnDownload = document.getElementById('btn-download');
 
-    const W = 1080, H = 1920;
-    // Calibrado a área de corte baseando-se na proporção do centro
-    const area = { x: 0, y: 380, w: 1080, h: 900, r: 0 };
-    const qualityScale = 2; 
+    let currentScale = 1;
 
-    imgMoldura.src = 'fundo.png'; 
-    imgMoldura.onload = () => {
-        canvas.width = W * qualityScale;
-        canvas.height = H * qualityScale;
-        ctx.scale(qualityScale, qualityScale);
-        render();
-    };
+    // Atualizar nome em tempo real
+    nomeCorredor.addEventListener('input', (e) => {
+        textoNome.textContent = e.target.value.toUpperCase().trim() || "SEU NOME AQUI";
+    });
 
-    document.getElementById('fileInput').onchange = (e) => {
+    // Carregar Imagem do Usuário
+    inputFoto.addEventListener('change', function(e) {
         const file = e.target.files[0];
         if (file) {
             const reader = new FileReader();
-            reader.onload = (f) => {
-                imgAtleta.src = f.target.result;
-                imgAtleta.onload = render;
-            };
+            reader.onload = function(event) {
+                fotoUser.src = event.target.result;
+                fotoUser.style.display = 'block';
+                fotoPlaceholder.style.display = 'none';
+                
+                // Ativar controles
+                sliderZoom.disabled = false;
+                btnReset.disabled = false;
+            }
             reader.readAsDataURL(file);
         }
-    };
+    });
 
-    document.querySelectorAll('input').forEach(input => input.oninput = render);
+    // Controle de Zoom
+    sliderZoom.addEventListener('input', (e) => {
+        currentScale = e.target.value / 100;
+        fotoUser.style.transform = `scale(${currentScale})`;
+    });
 
-    function render() {
-        ctx.clearRect(0, 0, W, H);
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
+    // Botão Reset
+    btnReset.addEventListener('click', () => {
+        currentScale = 1;
+        sliderZoom.value = 100;
+        fotoUser.style.transform = `scale(1)`;
+    });
 
-        // CORREÇÃO: 1. DESENHA A FOTO DO ATLETA PRIMEIRO (Fundo da camada)
-        if (imgAtleta.src && imgAtleta.complete) {
-            ctx.save();
-            // Limita a área onde a foto vai aparecer para não vazar nas extremidades do card
-            drawRoundedRect(ctx, area.x, area.y, area.w, area.h, area.r);
-            ctx.clip();
-            
-            const z = parseFloat(document.getElementById('zoom').value);
-            const px = parseInt(document.getElementById('posX').value);
-            const py = parseInt(document.getElementById('posY').value);
-            
-            const aspect = imgAtleta.width / imgAtleta.height;
-            let drawW = area.w * z;
-            let drawH = (area.w / aspect) * z;
-            
-            ctx.drawImage(imgAtleta, 
-                area.x + (area.w - drawW) / 2 + px, 
-                area.y + (area.h - drawH) / 2 + py, 
-                drawW, drawH
-            );
-            ctx.restore();
-        } else {
-            // Fundo cinza padrão caso não tenha foto selecionada ainda
-            ctx.fillStyle = "#e2e8f0";
-            ctx.fillRect(0, 380, W, 900);
-        }
-
-        // CORREÇÃO: 2. DESENHA A MOLDURA POR CIMA (Cobrindo as bordas da foto com a arte)
-        ctx.drawImage(imgMoldura, 0, 0, W, H);
-
-        // 3. ARTE "EU VOU" (TARJA VERDE)
-        renderEuVouImpacto();
-
-        // 4. TEXTOS (NOME E EQUIPE)
-        renderTextos();
-    }
-
-    function renderEuVouImpacto() {
-        const x = W / 2;
-        const y = 1175;
-        const txt = "EU VOU";
-
-        ctx.save();
-        ctx.textAlign = 'center';
-        ctx.translate(x, y);
-        ctx.rotate(-0.04);
-
-        // Tarja Verde Premium
-        ctx.fillStyle = "rgba(26, 58, 22, 0.95)"; 
-        ctx.shadowColor = "rgba(0,0,0,0.3)";
-        ctx.shadowBlur = 15;
-        ctx.fillRect(-380, -110, 760, 165);
-
-        // Texto
-        ctx.font = "italic 195px 'Permanent Marker'";
-        ctx.shadowBlur = 0; 
-        ctx.fillStyle = "#FFFFFF";
-        ctx.fillText(txt, 0, 10);
-
-        ctx.restore();
-    }
-
-    function renderTextos() {
-        const nome = document.getElementById('nomeAtleta').value.toUpperCase().trim();
-        const equipe = document.getElementById('equipeAtleta').value.toUpperCase().trim();
-
-        ctx.textAlign = 'center';
-        if (nome) {
-            ctx.font = "900 85px 'Montserrat'";
-            ctx.fillStyle = "#1a3a16";
-            ctx.fillText(nome, W / 2, 1365);
-        }
-        if (equipe) {
-            ctx.font = "700 44px 'Montserrat'";
-            ctx.fillStyle = "#475569";
-            ctx.fillText(equipe, W / 2, 1425);
-        }
-    }
-
-    function drawRoundedRect(ctx, x, y, width, height, radius) {
-        if (radius === 0) {
-            ctx.rect(x, y, width, height);
+    // Exportar com html2canvas preservando as ordens das camadas
+    btnDownload.addEventListener('click', () => {
+        if(!inputFoto.files[0]) {
+            alert("Por favor, selecione uma foto primeiro!");
             return;
         }
-        ctx.beginPath();
-        ctx.moveTo(x + radius, y);
-        ctx.lineTo(x + width - radius, y);
-        ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-        ctx.lineTo(x + width, y + height - radius);
-        ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-        ctx.lineTo(x + radius, y + height);
-        ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-        ctx.lineTo(x, y + radius);
-        ctx.quadraticCurveTo(x, y, x + radius, y);
-        ctx.closePath();
-    }
 
-    document.getElementById('btnDownload').onclick = () => {
-        if (!imgAtleta.src) return alert("Selecione sua foto primeiro!");
-        const link = document.createElement('a');
-        link.download = 'Saraletii_Run_Story.png';
-        link.href = canvas.toDataURL('image/png', 1.0);
-        link.click();
-    };
+        const card = document.getElementById('card-evento');
+        html2canvas(card, {
+            useCORS: true,
+            allowTaint: true,
+            scale: 2 // Melhora a qualidade ao salvar
+        }).then(canvas => {
+            const link = document.createElement('a');
+            link.download = 'meu-card-oficial.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        });
+    });
 </script>
-
 </body>
 </html>
