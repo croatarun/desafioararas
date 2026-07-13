@@ -11,7 +11,7 @@ body{
     color:white;
     overflow-x:hidden;
 
-    /* Fundo premium em tons de verde escuro */
+    /* Fundo em tons de verde escuro de alta performance */
     background:
         radial-gradient(circle at top, rgba(74, 222, 128, 0.15), transparent 35%),
         radial-gradient(circle at center, rgba(34, 197, 94, 0.1), transparent 55%),
@@ -88,31 +88,34 @@ header p{
     box-shadow:0 0 25px rgba(34, 197, 94, 0.25);
 }
 
-/* FUNDO DO CARD */
+/* ==========================================================================
+   CAMADAS INTERNAS DO CARD (Z-INDEX CONFIGURADOS)
+   ========================================================================== */
+
+/* 1. O fundo.png fica estritamente na base do card */
 #moldura-bg{
     position:absolute;
     inset:0;
     background-image:url("fundo.png");
     background-size:cover;
     background-position:center;
-    z-index:2;
-    pointer-events: none; /* Cliques passam para a foto abaixo */
+    z-index:1; 
+    pointer-events: none;
 }
 
-/* AJUSTE COMPLETO: Área da foto otimizada e centralizada verticalmente */
+/* 2. A foto selecionada fica na camada superior, passando por CIMA do fundo */
 #area-foto{
     position:absolute;
-    top: 42%; /* Posicionada perfeitamente no quadrante médio-superior */
+    top: 42%; 
     left:50%;
     transform: translate(-50%, -50%);
     
-    /* Proporções ideais para pegar rosto e busto sem invadir o rodapé */
     width:70%; 
     height:45%; 
     
     overflow:hidden;
     border-radius:18px;
-    z-index:1; /* Fica na base, abaixo da moldura se ela for PNG */
+    z-index:2; /* Fica acima do fundo (z-index 1) */
 
     display:flex;
     align-items:center;
@@ -155,10 +158,10 @@ header p{
     background:rgba(2, 44, 34, 0.85);
 }
 
-/* AJUSTE COMPLETO: Nome jogado para baixo fixado pelo bottom */
+/* 3. O nome do atleta fica no topo absoluto sobre todas as imagens */
 #texto-nome{
     position:absolute;
-    bottom: 110px; /* Alinhado de baixo para cima. Ajuste este número para subir ou descer milimetricamente */
+    bottom: 110px; 
     left:50%;
     transform:translateX(-50%);
 
@@ -172,9 +175,9 @@ header p{
     text-transform: uppercase;
 
     color:#ffffff;
-    z-index:10; /* Sempre visível por cima de tudo */
+    z-index:10; /* Protegido no topo */
 
-    /* Borda preta ultragrossa para contraste absoluto */
+    /* Borda preta em alta definição para leitura em qualquer cenário */
     text-shadow:
         3px 3px 0px #000,
         -3px 3px 0px #000,
@@ -186,6 +189,10 @@ header p{
         -3px 0px 0px #000,
         0 0 15px rgba(0,0,0,0.8);
 }
+
+/* ==========================================================================
+   PAINEL DE CONTROLES E BOTÕES
+   ========================================================================== */
 
 .controls{
     width:100%;
