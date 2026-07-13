@@ -97,10 +97,10 @@
             pointer-events: none;
         }
 
-        /* 2. ÁREA DA FOTO AJUSTADA (DESCEU PARA 61%) */
+        /* 2. ÁREA DA FOTO */
         #area-foto {
             position: absolute;
-            top: 61%;    /* Posicionada mais abaixo no card */
+            top: 61%;    
             left: 50%;
             transform: translate(-50%, -50%);
             width: 85%;  
@@ -134,10 +134,10 @@
             padding: 10px;
         }
 
-        /* 3. TEXTO DO NOME AJUSTADO (DESCEU PARA 75px DO BOTTOM) */
+        /* 3. TEXTO DO NOME */
         #texto-nome {
             position: absolute;
-            bottom: 75px; /* Nome posicionado mais abaixo */
+            bottom: 75px; 
             left: 50%;
             transform: translateX(-50%);
             width: 90%;
@@ -175,13 +175,50 @@
         
         .control-item {
             background: rgba(255,255,255,0.05);
-            padding: 10px;
+            padding: 12px;
             border-radius: 10px;
         }
 
+        .control-item label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+
+        /* CONTROLE DE ZOOM COM BOTÕES LATERAIS */
+        .zoom-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-zoom {
+            background: #334155;
+            color: white;
+            border: none;
+            width: 35px;
+            height: 35px;
+            border-radius: 8px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            user-select: none;
+        }
+
+        .btn-zoom:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
         input[type="range"] {
-            width: 100%;
+            flex: 1;
             accent-color: #4ade80;
+            height: 6px;
+            cursor: pointer;
         }
 
         .action-buttons {
@@ -236,9 +273,14 @@
                 <input type="file" id="input-foto" accept="image/*">
             </label>
 
+            <!-- Ajuste de Zoom Melhorado com Setas/Botões -->
             <div class="control-item">
-                <label for="slider-zoom">Zoom</label>
-                <input type="range" id="slider-zoom" min="50" max="200" value="100" disabled>
+                <label for="slider-zoom">Zoom da Foto</label>
+                <div class="zoom-container">
+                    <button type="button" class="btn-zoom" id="btn-zoom-out" disabled>-</button>
+                    <input type="range" id="slider-zoom" min="50" max="250" value="100" step="2" disabled>
+                    <button type="button" class="btn-zoom" id="btn-zoom-in" disabled>+</button>
+                </div>
             </div>
 
             <div class="action-buttons">
@@ -256,6 +298,8 @@
     const nomeCorredor = document.getElementById('nome-corredor');
     const textoNome = document.getElementById('texto-nome');
     const sliderZoom = document.getElementById('slider-zoom');
+    const btnZoomIn = document.getElementById('btn-zoom-in');
+    const btnZoomOut = document.getElementById('btn-zoom-out');
     const btnReset = document.getElementById('btn-reset');
     const btnDownload = document.getElementById('btn-download');
 
@@ -274,22 +318,46 @@
                 fotoUser.style.display = 'block';
                 fotoPlaceholder.style.display = 'none';
                 
+                // Habilitar botões e slider
                 sliderZoom.disabled = false;
+                btnZoomIn.disabled = false;
+                btnZoomOut.disabled = false;
                 btnReset.disabled = false;
             }
             reader.readAsDataURL(file);
         }
     });
 
-    sliderZoom.addEventListener('input', (e) => {
-        currentScale = e.target.value / 100;
+    // Função centralizada para atualizar a escala da foto
+    function atualizarZoom(valor) {
+        sliderZoom.value = valor;
+        currentScale = valor / 100;
         fotoUser.style.transform = `scale(${currentScale})`;
+    }
+
+    // Input manual no slider
+    sliderZoom.addEventListener('input', (e) => {
+        atualizarZoom(e.target.value);
+    });
+
+    // Botão de diminuir (-)
+    btnZoomOut.addEventListener('click', () => {
+        let novoValor = parseInt(sliderZoom.value) - 10;
+        if (novoValor >= parseInt(sliderZoom.min)) {
+            atualizarZoom(novoValor);
+        }
+    });
+
+    // Botão de aumentar (+)
+    btnZoomIn.addEventListener('click', () => {
+        let novoValor = parseInt(sliderZoom.value) + 10;
+        if (novoValor <= parseInt(sliderZoom.max)) {
+            atualizarZoom(novoValor);
+        }
     });
 
     btnReset.addEventListener('click', () => {
-        currentScale = 1;
-        sliderZoom.value = 100;
-        fotoUser.style.transform = `scale(1)`;
+        atualizarZoom(100);
     });
 
     btnDownload.addEventListener('click', () => {
