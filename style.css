@@ -11,7 +11,7 @@ body{
     color:white;
     overflow-x:hidden;
 
-    /* Gradiente de fundo ajustado para tons verde-escuro profundos */
+    /* Fundo premium em tons de verde escuro */
     background:
         radial-gradient(circle at top, rgba(74, 222, 128, 0.15), transparent 35%),
         radial-gradient(circle at center, rgba(34, 197, 94, 0.1), transparent 55%),
@@ -34,13 +34,12 @@ header h1{
     font-weight:900;
     line-height:1.15;
     color:#f8fafc;
-    /* Brilho neon esverdeado no título */
     text-shadow:0 0 18px rgba(74, 222, 128, 0.35);
 }
 
 header p{
     margin-top:12px;
-    color:#bbf7d0; /* Verde bem claro suave */
+    color:#bbf7d0;
     font-size:1.05rem;
     line-height:1.4;
 }
@@ -49,12 +48,10 @@ header p{
     width:100%;
     padding:20px;
     border-radius:28px;
-
-    background:rgba(2, 44, 34, 0.82); /* Fundo verde escuro opaco */
-    border:1px solid rgba(74, 222, 128, 0.28); /* Borda esmeralda sutil */
+    background:rgba(2, 44, 34, 0.82);
+    border:1px solid rgba(74, 222, 128, 0.28);
     box-shadow:0 0 35px rgba(22, 163, 74, 0.25);
     backdrop-filter:blur(12px);
-
     display:flex;
     flex-direction:column;
     gap:16px;
@@ -73,7 +70,7 @@ header p{
 }
 
 #nome-corredor:focus {
-    border-color: #4ade80; /* Destaca ao clicar */
+    border-color: #4ade80;
 }
 
 #nome-corredor::placeholder{
@@ -98,26 +95,28 @@ header p{
     background-image:url("fundo.png");
     background-size:cover;
     background-position:center;
-    z-index:1;
+    z-index:2;
+    pointer-events: none; /* Cliques passam para a foto abaixo */
 }
 
-/* FOTO DO USUÁRIO */
+/* AJUSTE COMPLETO: Área da foto otimizada e centralizada verticalmente */
 #area-foto{
     position:absolute;
-    top:36.5%;
+    top: 42%; /* Posicionada perfeitamente no quadrante médio-superior */
     left:50%;
-    transform:translateX(-50%);
-    width:64%;
-    height:41%;
-
+    transform: translate(-50%, -50%);
+    
+    /* Proporções ideais para pegar rosto e busto sem invadir o rodapé */
+    width:70%; 
+    height:45%; 
+    
     overflow:hidden;
     border-radius:18px;
-    z-index:4;
+    z-index:1; /* Fica na base, abaixo da moldura se ela for PNG */
 
     display:flex;
     align-items:center;
     justify-content:center;
-
     touch-action:none;
     cursor:grab;
 }
@@ -130,65 +129,62 @@ header p{
     position:absolute;
     top:50%;
     left:50%;
-
     width:100%;
     height:100%;
     object-fit:cover;
-
     display:none;
-    z-index:2;
-
+    z-index:1;
     transform:translate(-50%, -50%) scale(1);
     transform-origin:center center;
+    user-select: none;
+    -webkit-user-drag: none;
 }
 
 #foto-placeholder{
     position:absolute;
     inset:0;
     z-index:3;
-
     display:flex;
     align-items:center;
     justify-content:center;
-
     padding:14px;
     text-align:center;
     font-size:1rem;
     line-height:1.4;
-
     color:#dcfce7;
-    background:rgba(2, 44, 34, 0.72);
+    background:rgba(2, 44, 34, 0.85);
 }
 
-/* NOME */
+/* AJUSTE COMPLETO: Nome jogado para baixo fixado pelo bottom */
 #texto-nome{
     position:absolute;
-    top:65.5%;
+    bottom: 110px; /* Alinhado de baixo para cima. Ajuste este número para subir ou descer milimetricamente */
     left:50%;
     transform:translateX(-50%);
 
-    width:85%;
+    width:90%;
     text-align:center;
 
-    font-size:clamp(22px, 6vw, 36px);
+    font-size:clamp(22px, 5.5vw, 34px);
     font-weight:900;
-    line-height:1.05;
-    letter-spacing:.4px;
+    line-height:1.1;
+    letter-spacing:.5px;
+    text-transform: uppercase;
 
     color:#ffffff;
-    z-index:10;
+    z-index:10; /* Sempre visível por cima de tudo */
 
-    /* Sombra escura alterada para casar com o fundo esverdeado */
+    /* Borda preta ultragrossa para contraste absoluto */
     text-shadow:
-        2px 0 0 #022c22,
-        -2px 0 0 #022c22,
-        0 2px 0 #022c22,
-        0 -2px 0 #022c22,
-        1px 1px 0 #022c22,
-        -1px 1px 0 #022c22,
-        1px -1px 0 #022c22,
-        -1px -1px 0 #022c22,
-        0 0 10px rgba(74, 222, 128, 0.45);
+        3px 3px 0px #000,
+        -3px 3px 0px #000,
+        3px -3px 0px #000,
+        -3px -3px 0px #000,
+        0px 3px 0px #000,
+        0px -3px 0px #000,
+        3px 0px 0px #000,
+        -3px 0px 0px #000,
+        0 0 15px rgba(0,0,0,0.8);
 }
 
 .controls{
@@ -207,16 +203,23 @@ header p{
     display:flex;
     flex-direction:column;
     gap:8px;
+    text-align: center;
+    background: rgba(2, 44, 34, 0.95);
+    border: 1px solid rgba(74, 222, 128, 0.35);
+    padding: 12px;
+    border-radius: 12px;
+    cursor: pointer;
 }
 
 input[type="file"]{
     width:100%;
     color:#cbd5e1;
+    margin-top: 5px;
 }
 
 input[type="range"]{
     width:100%;
-    accent-color:#4ade80; /* Barra do slider em verde limão */
+    accent-color:#4ade80;
     margin-top:8px;
 }
 
@@ -242,7 +245,6 @@ button{
 }
 
 #btn-download{
-    /* Botão de alta ação em degradê verde vibrante */
     background:linear-gradient(135deg,#4ade80,#16a34a);
     color:white;
     box-shadow:0 0 22px rgba(22, 163, 74, 0.55);
