@@ -127,7 +127,6 @@
             pointer-events: none;
             transform: translate(0px, 0px) scale(1);
             transform-origin: center center;
-            transition: transform 0.01s ease-out;
         }
 
         #foto-placeholder {
@@ -144,7 +143,7 @@
             pointer-events: none;
         }
 
-        /* 3. TEXTO DO NOME (Mantido mais para baixo) */
+        /* 3. TEXTO DO NOME */
         #texto-nome {
             position: absolute;
             bottom: 55px; 
@@ -157,6 +156,8 @@
             text-transform: uppercase;
             color: #ffffff;
             z-index: 10;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
             text-shadow:
                 2px 2px 0px #000,
                 -2px 2px 0px #000,
@@ -304,6 +305,7 @@
     });
 
     function aplicarTransformacoes() {
+        // Aplicação limpa de coordenadas para evitar conflito com html2canvas
         fotoUser.style.transform = `translate(${currentTranslateX}px, ${currentTranslateY}px) scale(${currentScale})`;
     }
 
@@ -311,13 +313,13 @@
         return Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY);
     }
 
-    // --- ENTRADAS DE TOQUE (MOBILE GESTURES) ---
+    // --- ENTRADAS DE GESTOS MOBILE ---
     areaFoto.addEventListener('touchstart', (e) => {
         if (!inputFoto.files[0]) return;
         if (e.touches.length === 1) {
             isDragging = true;
-            startX = e.touches[0].clientX - (currentTranslateX * currentScale);
-            startY = e.touches[0].clientY - (currentTranslateY * currentScale);
+            startX = e.touches[0].clientX - currentTranslateX;
+            startY = e.touches[0].clientY - currentTranslateY;
         } else if (e.touches.length === 2) {
             isDragging = false; 
             initialPinchDistance = getDistance(e.touches[0], e.touches[1]);
@@ -328,8 +330,8 @@
     window.addEventListener('touchmove', (e) => {
         if (!inputFoto.files[0]) return;
         if (e.touches.length === 1 && isDragging) {
-            currentTranslateX = (e.touches[0].clientX - startX) / currentScale;
-            currentTranslateY = (e.touches[0].clientY - startY) / currentScale;
+            currentTranslateX = e.touches[0].clientX - startX;
+            currentTranslateY = e.touches[0].clientY - startY;
             aplicarTransformacoes();
         } else if (e.touches.length === 2 && initialPinchDistance > 0) {
             const currentDistance = getDistance(e.touches[0], e.touches[1]);
@@ -344,18 +346,18 @@
         if (e.touches.length < 2) initialPinchDistance = 0;
     });
 
-    // --- ENTRADAS DE MOUSE (DESKTOP) ---
+    // --- MOUSE ---
     areaFoto.addEventListener('mousedown', (e) => {
         if (!inputFoto.files[0]) return;
         isDragging = true;
-        startX = e.clientX - (currentTranslateX * currentScale);
-        startY = e.clientY - (currentTranslateY * currentScale);
+        startX = e.clientX - currentTranslateX;
+        startY = e.clientY - currentTranslateY;
     });
 
     window.addEventListener('mousemove', (e) => {
         if (isDragging) {
-            currentTranslateX = (e.clientX - startX) / currentScale;
-            currentTranslateY = (e.clientY - startY) / currentScale;
+            currentTranslateX = e.clientX - startX;
+            currentTranslateY = e.clientY - startY;
             aplicarTransformacoes();
         }
     });
@@ -369,7 +371,7 @@
         aplicarTransformacoes();
     });
 
-    // --- MÉTODO DE DOWNLOAD DIRETO ATUALIZADO VIA BLOB (COMPATÍVEL COM CELULAR) ---
+    // --- PROCESSAMENTO ULTRA PREMIUM DE DOWNLOAD ---
     btnDownload.addEventListener('click', () => {
         if(!inputFoto.files[0]) {
             alert("Por favor, selecione uma foto primeiro!");
@@ -379,14 +381,22 @@
         btnDownload.innerText = "BAIXANDO...";
         btnDownload.disabled = true;
 
-        // Executa a captura da área do card
+        // Configurações avançadas de alta fidelidade
         html2canvas(cardEvento, {
-            useCORS: true,
-            allowTaint: true,
-            scale: 2, // Mantém a qualidade alta
-            logging: false
+            scale: 3,                // Multiplica a densidade por 3x (Super Resolução HD)
+            useCORS: true,           // Evita quebra de imagens externas
+            allowTaint: false,
+            backgroundColor: null,   // Evita fundos brancos fantasmas
+            logging: false,
+            imageTimeout: 0,         // Não encerra o processamento antes de carregar os pixels modificados
+            onclone: (clonedDoc) => {
+                // Garante que o elemento clonado no print mantenha as propriedades exatas de visualização
+                const clonadoFoto = clonedDoc.getElementById('foto-user');
+                if (clonadoFoto) {
+                    clonadoFoto.style.transform = `translate(${currentTranslateX}px, ${currentTranslateY}px) scale(${currentScale})`;
+                }
+            }
         }).then(canvas => {
-            // Conversão correta e limpa para formato Blob (Arquivo real binário)
             canvas.toBlob((blob) => {
                 if (blob) {
                     const url = window.URL.createObjectURL(blob);
@@ -397,18 +407,17 @@
                     document.body.appendChild(link);
                     link.click();
                     
-                    // Limpeza de cache pós-download
                     document.body.removeChild(link);
                     window.URL.revokeObjectURL(url);
                 } else {
-                    alert("Erro ao processar arquivo. Tente novamente.");
+                    alert("Erro ao processar imagem de alta qualidade.");
                 }
                 
                 btnDownload.innerText = "SALVAR CARD";
                 btnDownload.disabled = false;
-            }, 'image/png');
+            }, 'image/png', 1.0); // 1.0 ativa compressão sem perdas (Qualidade Máxima)
         }).catch(error => {
-            alert("Não foi possível gerar seu card. Verifique as permissões do seu navegador.");
+            alert("Erro na renderização. Tente baixar novamente.");
             btnDownload.innerText = "SALVAR CARD";
             btnDownload.disabled = false;
         });
