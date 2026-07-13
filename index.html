@@ -74,27 +74,89 @@
             outline: none;
         }
 
-        /* Container do Canvas Visual na tela */
-        .canvas-container {
+        #card-evento {
+            position: relative;
             width: 100%;
             aspect-ratio: 9 / 16;
             overflow: hidden;
             border-radius: 20px;
+            background: #022c22;
             border: 1px solid rgba(74, 222, 128, 0.35);
-            background: #011410;
-            position: relative;
         }
 
-        canvas {
+        /* 1. MOLDURA FLUTUANDO NA BASE DO CARD */
+        #moldura-bg {
+            position: absolute;
+            inset: 0;
+            background-image: url("fundo.png");
+            background-size: cover;
+            background-position: center;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        /* 2. ÁREA DA FOTO */
+        #area-foto {
+            position: absolute;
+            top: 63%;      
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 84%;    
+            height: 41%;   
+            z-index: 2;  
+            overflow: hidden; 
+            border-radius: 14px;
+            cursor: grab;
+            user-select: none;
+            touch-action: none;
+            background: #011410;
+        }
+
+        #area-foto:active {
+            cursor: grabbing;
+        }
+
+        #foto-user {
+            position: absolute;
             width: 100%;
             height: 100%;
-            display: block;
-            cursor: grab;
-            touch-action: none;
+            object-fit: cover;
+            pointer-events: none;
+            transform-origin: center center;
         }
 
-        canvas:active {
-            cursor: grabbing;
+        #foto-placeholder {
+            position: absolute;
+            inset: 0;
+            background: rgba(2, 44, 34, 0.85);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 3;
+            text-align: center;
+            padding: 10px;
+            pointer-events: none;
+        }
+
+        /* 3. TEXTO DO NOME */
+        #texto-nome {
+            position: absolute;
+            bottom: 55px; 
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            text-align: center;
+            font-size: clamp(24px, 6vw, 36px);
+            font-weight: 900;
+            text-transform: uppercase;
+            color: #ffffff;
+            z-index: 10;
+            text-shadow:
+                2px 2px 0px #000,
+                -2px 2px 0px #000,
+                2px -2px 0px #000,
+                -2px -2px 0px #000;
         }
 
         /* CONTROLES */
@@ -127,11 +189,6 @@
             background: #16a34a;
             color: white;
             font-size: 1rem;
-            transition: background 0.2s;
-        }
-
-        .btn-download:hover {
-            background: #15803d;
         }
         
         .instrucao-arrastar {
@@ -148,7 +205,7 @@
 <div class="container">
     <header>
         <h1>Gere seu Card Oficial</h1>
-        <p>Mova e ajuste sua foto diretamente no card!</p>
+        <p>Ajuste sua foto, digite seu nome e salve o card!</p>
     </header>
 
     <main class="card-box">
@@ -156,9 +213,18 @@
             <input type="text" id="nome-corredor" placeholder="Digite seu nome completo" maxlength="25">
         </div>
 
-        <div class="canvas-container">
-            <!-- Um único Canvas nativo cuidando de tudo -->
-            <canvas id="cardCanvas"></canvas>
+        <div id="card-evento">
+            <div id="moldura-bg"></div>
+            
+            <div id="area-foto">
+                <img id="foto-user" alt="Sua foto de corredor" style="display: none;">
+                <div id="foto-placeholder">
+                    <span>📸</span>
+                    <p>Toque abaixo para escolher uma foto</p>
+                </div>
+            </div>
+
+            <div id="texto-nome">SEU NOME AQUI</div>
         </div>
 
         <div class="controls">
@@ -168,7 +234,7 @@
             </label>
 
             <p class="instrucao-arrastar" id="msg-ajuda" style="display:none;">
-                👋 Arraste para mover | ✌️ Use dois dedos ou a roda do mouse para dar Zoom
+                👋 Use 1 dedo para mover | ✌️ Use 2 dedos para dar zoom
             </p>
 
             <button class="btn btn-download" id="btnDownload">2. Baixar Story</button>
@@ -177,74 +243,102 @@
 </div>
 
 <script>
-    const canvas = document.getElementById('cardCanvas');
-    const ctx = canvas.getContext('2d');
     const inputFoto = document.getElementById('input-foto');
+    const areaFoto = document.getElementById('area-foto');
+    const fotoUser = document.getElementById('foto-user');
+    const fotoPlaceholder = document.getElementById('foto-placeholder');
     const nomeCorredor = document.getElementById('nome-corredor');
+    const textoNome = document.getElementById('texto-nome');
     const msgAjuda = document.getElementById('msg-ajuda');
     const btnDownload = document.getElementById('btnDownload');
 
-    // Definição HD Fixa do Canvas (Resolução 1080x1920 Proporção de Story)
-    const CANVAS_WIDTH = 1080;
-    const CANVAS_HEIGHT = 1920;
-    canvas.width = CANVAS_WIDTH;
-    canvas.height = CANVAS_HEIGHT;
-
-    // Imagens fundamentais
-    const imgMoldura = new Image();
-    imgMoldura.src = 'fundo.png'; // Caminho da sua moldura de fundo
+    // Variáveis de controle de zoom/posição que funcionam perfeitamente na tela
+    let scale = 1;
+    let translateX = 0;
+    let translateY = 0;
     
-    const imgAtleta = new Image();
-
-    // Estado da Foto do Usuário
-    let fotoCarregada = false;
-    let imgScale = 1.0;
-    let imgX = 0;
-    let imgY = 0;
-    let textNome = "SEU NOME AQUI";
-
-    // Variáveis de Controle de Gestos/Mouse
     let isDragging = false;
     let startX = 0;
     let startY = 0;
-    let lastPinchDist = 0;
+    let initialPinchDistance = 0;
+    let initialScale = 1;
 
-    // Atualiza o canvas quando a moldura carregar
-    imgMoldura.onload = () => { drawCard(); };
-
-    // Entrada do Nome
     nomeCorredor.addEventListener('input', (e) => {
-        textNome = e.target.value.toUpperCase().trim() || "SEU NOME AQUI";
-        drawCard();
+        textoNome.textContent = e.target.value.toUpperCase().trim() || "SEU NOME AQUI";
     });
 
-    // Entrada do Arquivo de Imagem
     inputFoto.addEventListener('change', function(e) {
         const file = e.target.files[0];
         if (file) {
             const reader = new FileReader();
             reader.onload = function(event) {
-                imgAtleta.src = event.target.result;
-                imgAtleta.onload = function() {
-                    fotoCarregada = true;
-                    msgAjuda.style.display = 'block';
-                    
-                    // Centraliza a foto de forma padrão inicial (Modo Cover)
-                    const areaW = 907; // 1080 * 0.84
-                    const areaH = 787; // 1920 * 0.41
-                    imgScale = Math.max(areaW / imgAtleta.naturalWidth, areaH / imgAtleta.naturalHeight);
-                    
-                    imgX = (CANVAS_WIDTH / 2);
-                    imgY = (CANVAS_HEIGHT * 0.63);
-                    
-                    drawCard();
-                }
+                fotoUser.src = event.target.result;
+                fotoUser.style.display = 'block';
+                fotoPlaceholder.style.display = 'none';
+                msgAjuda.style.display = 'block';
+                
+                scale = 1;
+                translateX = 0;
+                translateY = 0;
+                atualizarCSS();
             }
             reader.readAsDataURL(file);
         }
     });
 
-    // --- FUNÇÃO ADAPTADA: ARREDONDAMENTO NATIVO REQUISITADO ---
+    function atualizarCSS() {
+        fotoUser.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+    }
+
+    function getDistance(touch1, touch2) {
+        return Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY);
+    }
+
+    // --- INTERAÇÕES DA FOTO NA TELA ---
+    areaFoto.addEventListener('touchstart', (e) => {
+        if (!inputFoto.files[0]) return;
+        if (e.touches.length === 1) {
+            isDragging = true;
+            startX = e.touches[0].clientX - translateX;
+            startY = e.touches[0].clientY - translateY;
+        } else if (e.touches.length === 2) {
+            isDragging = false; 
+            initialPinchDistance = getDistance(e.touches[0], e.touches[1]);
+            initialScale = scale;
+        }
+    });
+
+    window.addEventListener('touchmove', (e) => {
+        if (!inputFoto.files[0]) return;
+        if (e.touches.length === 1 && isDragging) {
+            translateX = e.touches[0].clientX - startX;
+            translateY = e.touches[0].clientY - startY;
+            atualizarCSS();
+        } else if (e.touches.length === 2 && initialPinchDistance > 0) {
+            const currentDistance = getDistance(e.touches[0], e.touches[1]);
+            const factor = currentDistance / initialPinchDistance;
+            scale = Math.min(Math.max(initialScale * factor, 0.4), 5);
+            atualizarCSS();
+        }
+    });
+
+    window.addEventListener('touchend', () => { isDragging = false; initialPinchDistance = 0; });
+    areaFoto.addEventListener('mousedown', (e) => {
+        if (!inputFoto.files[0]) return;
+        isDragging = true;
+        startX = e.clientX - translateX;
+        startY = e.clientY - translateY;
+    });
+    window.addEventListener('mousemove', (e) => {
+        if (isDragging) {
+            translateX = e.clientX - startX;
+            translateY = e.clientY - startY;
+            atualizarCSS();
+        }
+    });
+    window.addEventListener('mouseup', () => { isDragging = false; });
+
+    // --- SUA FUNÇÃO DE ARREDONDAMENTO NATIVA DO CANVAS ---
     function drawRoundedRect(ctx, x, y, width, height, radius) {
         ctx.beginPath();
         ctx.moveTo(x + radius, y);
@@ -259,128 +353,95 @@
         ctx.closePath();
     }
 
-    // --- MOTOR PRINCIPAL DE DESENHO DO CANVAS (IMPECÁVEL) ---
-    function drawCard() {
-        // Limpa tudo
-        ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+    // --- EXPORTADOR CANVAS NATIVO (IGUAL AO QUE VOCÊ CONFIA) ---
+    btnDownload.onclick = () => {
+        if (!inputFoto.files[0]) return alert("Selecione sua foto primeiro!");
 
-        // 1. Desenha o fundo preto base da caixa da foto primeiro
-        ctx.fillStyle = "#011410";
-        ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+        btnDownload.innerText = "PROCESSANDO...";
+        btnDownload.disabled = true;
 
-        // 2. Posiciona e Recorta a Foto do Corredor se ela existir
-        if (fotoCarregada) {
+        // Criamos o canvas em background em alta definição estável (1080x1920)
+        const canvas = document.createElement('canvas');
+        canvas.width = 1080;
+        canvas.height = 1920;
+        const ctx = canvas.getContext('2d');
+
+        // Carrega as imagens de forma programática paralela para evitar problemas de CORS
+        const molduraImg = new Image();
+        molduraImg.src = 'fundo.png';
+        
+        const atletaImg = new Image();
+        atletaImg.src = fotoUser.src;
+
+        molduraImg.onload = () => {
+            // 1. Limpa e desenha o fundo básico
+            ctx.fillStyle = '#022c22';
+            ctx.fillRect(0, 0, 1080, 1920);
+
+            // 2. Mapeia a caixa da foto baseada nas proporções reais da tela (width: 84%, height: 41%, top: 63%)
+            const wBox = 1080 * 0.84; // 907.2px
+            const hBox = 1920 * 0.41; // 787.2px
+            const xBox = (1080 - wBox) / 2;
+            const yBox = (1920 * 0.63) - (hBox / 2);
+
             ctx.save();
-            
-            // Dimensões exatas baseadas nos seus parâmetros de 84% de largura e 41% de altura
-            const wBox = 907; 
-            const hBox = 787;
-            const xBox = (CANVAS_WIDTH - wBox) / 2;
-            const yBox = (CANVAS_HEIGHT * 0.63) - (hBox / 2);
-            
-            // Cria a máscara arredondada usando sua função
-            drawRoundedRect(ctx, xBox, yBox, wBox, hBox, 42); // 42px de raio em escala real
+            // Aplica sua função nativa de recorte arredondado
+            drawRoundedRect(ctx, xBox, yBox, wBox, hBox, 42);
             ctx.clip();
 
-            // Desenha a imagem baseada nos pontos dinâmicos de arraste e escala
-            const wRender = imgAtleta.naturalWidth * imgScale;
-            const hRender = imgAtleta.naturalHeight * imgScale;
+            // Calcula proporção do object-fit: cover da imagem do usuário
+            let renderW = wBox * scale;
+            let renderH = (atletaImg.naturalHeight / atletaImg.naturalWidth) * renderW;
             
-            ctx.drawImage(imgAtleta, imgX - wRender / 2, imgY - hRender / 2, wRender, hRender);
+            if(renderH < hBox * scale) {
+                renderH = hBox * scale;
+                renderW = (atletaImg.naturalWidth / atletaImg.naturalHeight) * renderH;
+            }
+
+            // Fator multiplicador de tela física para a proporção HD do Canvas
+            const fatorConversao = 1080 / areaFoto.parentElement.clientWidth;
+
+            const renderX = xBox + (wBox - renderW) / 2 + (translateX * fatorConversao);
+            const renderY = yBox + (hBox - renderH) / 2 + (translateY * fatorConversao);
+
+            // Desenha a foto do usuário modificada
+            ctx.drawImage(atletaImg, renderX, renderY, renderW, renderH);
             ctx.restore();
-        }
 
-        // 3. Desenha a moldura por cima da foto (Preservando transparências)
-        if (imgMoldura.complete) {
-            ctx.drawImage(imgMoldura, 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-        }
+            // 3. Desenha a moldura oficial por cima
+            ctx.drawImage(molduraImg, 0, 0, 1080, 1920);
 
-        // 4. Desenha o Texto do Nome com o contorno preto perfeito (Stroked Text)
-        ctx.fillStyle = "#ffffff";
-        ctx.font = "900 68px Arial"; // Tamanho proporcional HD
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        
-        const xTexto = CANVAS_WIDTH / 2;
-        const yTexto = CANVAS_HEIGHT - 125; // Equivale aos 55px proporcionais da base
+            // 4. Renderiza o texto nativamente
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "900 66px Arial";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            
+            const xTexto = 1080 / 2;
+            const yTexto = 1920 - 125; // Alinhamento proporcional perfeito na base
 
-        // Contorno
-        ctx.strokeStyle = "#000000";
-        ctx.lineWidth = 12;
-        ctx.strokeText(textNome, xTexto, yTexto);
-        // Preenchimento
-        ctx.fillText(textNome, xTexto, yTexto);
-    }
+            ctx.strokeStyle = "#000000";
+            ctx.lineWidth = 12;
+            ctx.strokeText(textoNome.textContent, xTexto, yTexto);
+            ctx.fillText(textoNome.textContent, xTexto, yTexto);
 
-    // --- CONTROLE DE MOVIMENTAÇÃO (MOUSE E TOUCH COM ADAPTAÇÃO CANVAS COORDENADAS) ---
-    function getCanvasCoords(e) {
-        const rect = canvas.getBoundingClientRect();
-        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-        return {
-            x: (clientX - rect.left) * (CANVAS_WIDTH / rect.width),
-            y: (clientY - rect.top) * (CANVAS_HEIGHT / rect.height)
+            // --- EXECUTA O SEU SEGURO SISTEMA DE DOWNLOAD VIA DATAURL ---
+            const link = document.createElement('a');
+            link.download = 'Desafio_Araras_Story.png';
+            link.href = canvas.toDataURL('image/png', 1.0);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            btnDownload.innerText = "2. Baixar Story";
+            btnDownload.disabled = false;
         };
-    }
 
-    function startDrag(e) {
-        if (!fotoCarregada) return;
-        if (e.touches && e.touches.length === 2) {
-            isDragging = false;
-            lastPinchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
-            return;
-        }
-        isDragging = true;
-        const coords = getCanvasCoords(e);
-        startX = coords.x - imgX;
-        startY = coords.y - imgY;
-    }
-
-    function moveDrag(e) {
-        if (!fotoCarregada) return;
-        if (e.touches && e.touches.length === 2) {
-            const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
-            const factor = dist / lastPinchDist;
-            imgScale = Math.min(Math.max(imgScale * factor, 0.1), 6);
-            lastPinchDist = dist;
-            drawCard();
-            return;
-        }
-        if (!isDragging) return;
-        const coords = getCanvasCoords(e);
-        imgX = coords.x - startX;
-        imgY = coords.y - startY;
-        drawCard();
-    }
-
-    function stopDrag() { isDragging = false; }
-
-    // Ouvintes Mouse
-    canvas.addEventListener('mousedown', startDrag);
-    window.addEventListener('mousemove', moveDrag);
-    window.addEventListener('mouseup', stopDrag);
-
-    // Ouvintes Touch Screen
-    canvas.addEventListener('touchstart', startDrag, { passive: true });
-    window.addEventListener('touchmove', moveDrag, { passive: true });
-    window.addEventListener('touchend', stopDrag);
-
-    // Zoom via Roda do Mouse (Desktop)
-    canvas.addEventListener('wheel', (e) => {
-        if (!fotoCarregada) return;
-        e.preventDefault();
-        const zoomFactor = e.deltaY < 0 ? 1.05 : 0.95;
-        imgScale = Math.min(Math.max(imgScale * zoomFactor, 0.1), 6);
-        drawCard();
-    }, { passive: false });
-
-    // --- FUNÇÃO ADAPTADA DE DOWNLOAD (EXATAMENTE COMO VOCÊ QUERIA) ---
-    document.getElementById('btnDownload').onclick = () => {
-        if (!fotoCarregada) return alert("Selecione sua foto primeiro!");
-        const link = document.createElement('a');
-        link.download = 'Desafio_Araras_Story.png';
-        link.href = canvas.toDataURL('image/png', 1.0);
-        link.click();
+        molduraImg.onerror = () => {
+            alert("Erro ao carregar a moldura 'fundo.png'. Certifique-se de que o arquivo está na mesma pasta.");
+            btnDownload.innerText = "2. Baixar Story";
+            btnDownload.disabled = false;
+        };
     };
 </script>
 </body>
