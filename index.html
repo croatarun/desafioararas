@@ -1,83 +1,60 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Gerador de Card Oficial</title>
-
-<link rel="stylesheet" href="style.css">
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador de Card Oficial</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Biblioteca para exportar a div como imagem -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
-
 <body>
 
 <div class="container">
-
     <header>
-        <h1>🏃‍♂️ Gere seu Card Oficial</h1>
-        <p>Ajuste sua foto e compartilhe nos Stories</p>
+        <h1>🚵 Gere seu Card Oficial</h1>
+        <p>Ajuste sua foto, digite seu nome e compartilhe nas redes!</p>
     </header>
 
     <main class="card-box">
+        <!-- Input de Texto -->
+        <div class="input-group">
+            <input type="text" id="nome-corredor" placeholder="Digite seu nome completo" maxlength="25">
+        </div>
 
-        <input 
-            type="text" 
-            id="nome-corredor" 
-            placeholder="Digite seu nome"
-        >
-
+        <!-- Área do Card que será exportada -->
         <div id="card-evento">
-
             <div id="moldura-bg"></div>
-
+            
             <div id="area-foto">
-                <img id="foto-user" alt="Foto escolhida">
-
+                <img id="foto-user" alt="Sua foto de corredor" style="display: none;">
                 <div id="foto-placeholder">
-                    Selecione uma foto
+                    <span>📸</span>
+                    <p>Toque abaixo para escolher uma foto</p>
                 </div>
             </div>
 
-            <div id="texto-nome"></div>
-
+            <div id="texto-nome">SEU NOME AQUI</div>
         </div>
 
+        <!-- Painel de Controles -->
         <div class="controls">
-
-            <label class="file-label">
+            <label class="file-label" for="input-foto">
                 Escolha sua foto
-                <input 
-                    type="file" 
-                    id="input-foto" 
-                    accept="image/*"
-                >
+                <input type="file" id="input-foto" accept="image/*">
             </label>
 
-            <label>
-                Zoom
-                <input 
-                    type="range" 
-                    id="slider-zoom" 
-                    min="100" 
-                    max="250" 
-                    value="100"
-                >
-            </label>
+            <div class="control-item">
+                <label for="slider-zoom">Zoom</label>
+                <input type="range" id="slider-zoom" min="100" max="300" value="100" disabled>
+            </div>
 
-            <button id="btn-reset">
-                Centralizar Foto
-            </button>
-
-            <button id="btn-download">
-                Salvar Card
-            </button>
-
+            <div class="action-buttons">
+                <button id="btn-reset" type="button" disabled>Centralizar</button>
+                <button id="btn-download" type="button" class="btn-primary">Salvar Card</button>
+            </div>
         </div>
-
     </main>
-
 </div>
 
 <script src="script.js"></script>
