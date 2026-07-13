@@ -97,7 +97,7 @@
             pointer-events: none;
         }
 
-        /* 2. ÁREA DA FOTO (Com cursor indicando que dá para arrastar) */
+        /* 2. ÁREA DA FOTO */
         #area-foto {
             position: absolute;
             top: 62%;    
@@ -113,20 +113,24 @@
             border-radius: 12px;
             cursor: grab;
             user-select: none;
-            touch-action: none; /* Previne o scroll da tela ao arrastar no celular */
+            touch-action: none;
         }
 
         #area-foto:active {
             cursor: grabbing;
         }
 
+        /* CORREÇÃO AQUI: Mudança nas regras de tamanho para evitar cortes e permitir redução real */
         #foto-user {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            pointer-events: none; /* Evita interferência no arrasto */
+            max-width: 100%;
+            max-height: 100%;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+            pointer-events: none;
             transform: scale(1) translateY(0px);
-            transition: transform 0.05s ease-out;
+            transform-origin: center center; /* Garante que o zoom reduza em direção ao centro */
+            transition: transform 0.02s ease-out;
         }
 
         #foto-placeholder {
@@ -272,7 +276,6 @@
         <div id="card-evento">
             <div id="moldura-bg"></div>
             
-            <!-- Área com detecção de toque/arrasto manual -->
             <div id="area-foto">
                 <img id="foto-user" alt="Sua foto de corredor" style="display: none;">
                 <div id="foto-placeholder">
@@ -294,7 +297,8 @@
                 <label for="slider-zoom">Zoom da Foto</label>
                 <div class="zoom-container">
                     <button type="button" class="btn-zoom" id="btn-zoom-out" disabled>-</button>
-                    <input type="range" id="slider-zoom" min="50" max="250" value="100" step="2" disabled>
+                    <!-- Expandido o mínimo do slider para 10% permitindo reduções maiores se necessário -->
+                    <input type="range" id="slider-zoom" min="10" max="250" value="100" step="2" disabled>
                     <button type="button" class="btn-zoom" id="btn-zoom-in" disabled>+</button>
                 </div>
             </div>
@@ -343,6 +347,12 @@
                 fotoPlaceholder.style.display = 'none';
                 msgAjuda.style.display = 'block';
                 
+                // Configurações padrão iniciais ao carregar nova foto
+                currentScale = 1;
+                currentTranslateY = 0;
+                sliderZoom.value = 100;
+                aplicarTransformacoes();
+
                 sliderZoom.disabled = false;
                 btnZoomIn.disabled = false;
                 btnZoomOut.disabled = false;
@@ -353,19 +363,21 @@
     });
 
     function aplicarTransformacoes() {
-        fotoUser.style.transform = `scale(${currentScale}) translateY(${currentTranslateY}px)`;
+        // Usa a sintaxe combinada mantendo o ponto de origem centralizado
+        fotoUser.style.transform = `translateY(${currentTranslateY}px) scale(${currentScale})`;
     }
 
-    // LÓGICA DE ARRASTAR MANUAL (Dedo / Mouse)
+    // ARRASTO MANUAL AJUSTADO COM SUPORTE A ESCALA COMPENSADA
     function iniciarArrasto(y) {
         if (!inputFoto.files[0]) return;
         isDragging = true;
-        startY = y - currentTranslateY;
+        // Compensação matemática: divide pela escala para o movimento do dedo bater com a imagem reduzida/ampliada
+        startY = y - (currentTranslateY * currentScale);
     }
 
     function moverArrasto(y) {
         if (!isDragging) return;
-        currentTranslateY = y - startY;
+        currentTranslateY = (y - startY) / currentScale;
         aplicarTransformacoes();
     }
 
@@ -373,18 +385,22 @@
         isDragging = false;
     }
 
-    // Eventos para Mouse (Computador)
+    // Eventos Mouse
     areaFoto.addEventListener('mousedown', (e) => iniciarArrasto(e.clientY));
     window.addEventListener('mousemove', (e) => moverArrasto(e.clientY));
     window.addEventListener('mouseup', finalizarArrasto);
 
-    // Eventos para Toque (Celular)
-    areaFoto.addEventListener('touchstart', (e) => iniciarArrasto(e.touches[0].clientY));
-    window.addEventListener('touchmove', (e) => moverArrasto(e.touches[0].clientY));
+    // Eventos Touch
+    areaFoto.addEventListener('touchstart', (e) => {
+        iniciarArrasto(e.touches[0].clientY);
+    });
+    window.addEventListener('touchmove', (e) => {
+        moverArrasto(e.touches[0].clientY);
+    });
     window.addEventListener('touchend', finalizarArrasto);
 
 
-    // Controles de Zoom secundários
+    // Controles de Slider e Botões de Zoom
     sliderZoom.addEventListener('input', (e) => {
         currentScale = e.target.value / 100;
         aplicarTransformacoes();
