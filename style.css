@@ -1,0 +1,255 @@
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+    min-height:100vh;
+    padding:22px;
+    font-family:Arial,sans-serif;
+    color:white;
+    overflow-x:hidden;
+
+    background:
+        radial-gradient(circle at top, rgba(96,165,250,.18), transparent 35%),
+        radial-gradient(circle at center, rgba(59,130,246,.12), transparent 55%),
+        linear-gradient(180deg,#020817 0%,#0f172a 45%,#1e3a8a 100%);
+}
+
+.container{
+    width:100%;
+    max-width:500px;
+    margin:0 auto;
+}
+
+header{
+    text-align:center;
+    margin-bottom:24px;
+}
+
+header h1{
+    font-size:clamp(2rem, 8vw, 3.2rem);
+    font-weight:900;
+    line-height:1.15;
+    color:#f8fafc;
+    text-shadow:0 0 18px rgba(96,165,250,.35);
+}
+
+header p{
+    margin-top:12px;
+    color:#bfdbfe;
+    font-size:1.05rem;
+    line-height:1.4;
+}
+
+.card-box{
+    width:100%;
+    padding:20px;
+    border-radius:28px;
+
+    background:rgba(15,23,42,.82);
+    border:1px solid rgba(96,165,250,.28);
+    box-shadow:0 0 35px rgba(37,99,235,.25);
+    backdrop-filter:blur(12px);
+
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+}
+
+#nome-corredor{
+    width:100%;
+    padding:15px;
+    border-radius:16px;
+    border:1px solid rgba(96,165,250,.35);
+    background:rgba(15,23,42,.95);
+    color:white;
+    font-size:1rem;
+    outline:none;
+}
+
+#nome-corredor::placeholder{
+    color:#93c5fd;
+}
+
+#card-evento{
+    position:relative;
+    width:100%;
+    aspect-ratio:9/16;
+    overflow:hidden;
+    border-radius:20px;
+    background:#020817;
+    border:1px solid rgba(96,165,250,.35);
+    box-shadow:0 0 25px rgba(59,130,246,.25);
+}
+
+/* FUNDO DO CARD */
+#moldura-bg{
+    position:absolute;
+    inset:0;
+    background-image:url("fundo.png");
+    background-size:cover;
+    background-position:center;
+    z-index:1;
+}
+
+/* FOTO DO USUÁRIO */
+#area-foto{
+    position:absolute;
+    top:36.5%;
+    left:50%;
+    transform:translateX(-50%);
+    width:64%;
+    height:41%;
+
+    overflow:hidden;
+    border-radius:18px;
+    z-index:4;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    touch-action:none;
+    cursor:grab;
+}
+
+#area-foto:active{
+    cursor:grabbing;
+}
+
+#foto-user{
+    position:absolute;
+    top:50%;
+    left:50%;
+
+    width:100%;
+    height:100%;
+    object-fit:cover;
+
+    display:none;
+    z-index:2;
+
+    transform:translate(-50%, -50%) scale(1);
+    transform-origin:center center;
+}
+
+#foto-placeholder{
+    position:absolute;
+    inset:0;
+    z-index:3;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    padding:14px;
+    text-align:center;
+    font-size:1rem;
+    line-height:1.4;
+
+    color:#dbeafe;
+    background:rgba(2,8,23,.72);
+}
+
+/* NOME */
+#texto-nome{
+    position:absolute;
+    top:65.5%;
+    left:50%;
+    transform:translateX(-50%);
+
+    width:85%;
+    text-align:center;
+
+    font-size:clamp(22px, 6vw, 36px);
+    font-weight:900;
+    line-height:1.05;
+    letter-spacing:.4px;
+
+    color:#ffffff;
+    z-index:10;
+
+    text-shadow:
+        2px 0 0 #06163d,
+        -2px 0 0 #06163d,
+        0 2px 0 #06163d,
+        0 -2px 0 #06163d,
+        1px 1px 0 #06163d,
+        -1px 1px 0 #06163d,
+        1px -1px 0 #06163d,
+        -1px -1px 0 #06163d,
+        0 0 10px rgba(37,99,235,.45);
+}
+
+.controls{
+    width:100%;
+    display:flex;
+    flex-direction:column;
+    gap:15px;
+}
+
+.controls label{
+    color:#dbeafe;
+    font-weight:700;
+}
+
+.file-label{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+}
+
+input[type="file"]{
+    width:100%;
+    color:#cbd5e1;
+}
+
+input[type="range"]{
+    width:100%;
+    accent-color:#60a5fa;
+    margin-top:8px;
+}
+
+button{
+    width:100%;
+    border:none;
+    border-radius:999px;
+    padding:15px;
+    cursor:pointer;
+    font-size:1rem;
+    font-weight:900;
+    transition:.25s;
+}
+
+#btn-reset{
+    background:rgba(15,23,42,.95);
+    color:#dbeafe;
+    border:1px solid rgba(96,165,250,.35);
+}
+
+#btn-download{
+    background:linear-gradient(135deg,#60a5fa,#2563eb);
+    color:white;
+    box-shadow:0 0 22px rgba(37,99,235,.55);
+}
+
+#btn-download:hover{
+    transform:translateY(-2px);
+    box-shadow:0 0 30px rgba(37,99,235,.75);
+}
+
+@media(max-width:480px){
+    body{
+        padding:16px;
+    }
+
+    .card-box{
+        padding:16px;
+    }
+
+    header h1{
+        font-size:2.3rem;
+    }
+}

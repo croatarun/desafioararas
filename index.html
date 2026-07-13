@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Gerador de Card Oficial</title>
+
+<link rel="stylesheet" href="style.css">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+
+<body>
+
+<div class="container">
+
+    <header>
+        <h1>🏃‍♂️ Gere seu Card Oficial</h1>
+        <p>Ajuste sua foto e compartilhe nos Stories</p>
+    </header>
+
+    <main class="card-box">
+
+        <input 
+            type="text" 
+            id="nome-corredor" 
+            placeholder="Digite seu nome"
+        >
+
+        <div id="card-evento">
+
+            <div id="moldura-bg"></div>
+
+            <div id="area-foto">
+                <img id="foto-user" alt="Foto escolhida">
+
+                <div id="foto-placeholder">
+                    Selecione uma foto
+                </div>
+            </div>
+
+            <div id="texto-nome"></div>
+
+        </div>
+
+        <div class="controls">
+
+            <label class="file-label">
+                Escolha sua foto
+                <input 
+                    type="file" 
+                    id="input-foto" 
+                    accept="image/*"
+                >
+            </label>
+
+            <label>
+                Zoom
+                <input 
+                    type="range" 
+                    id="slider-zoom" 
+                    min="100" 
+                    max="250" 
+                    value="100"
+                >
+            </label>
+
+            <button id="btn-reset">
+                Centralizar Foto
+            </button>
+
+            <button id="btn-download">
+                Salvar Card
+            </button>
+
+        </div>
+
+    </main>
+
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
